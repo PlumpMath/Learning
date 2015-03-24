@@ -17,4 +17,22 @@
 
 
 
+;;**********************************************************************************************
 
+(def common-words (-> (slurp "http://www.textfixer.com/resources/common-english-words.txt")
+                      (clojure.string/split #",")
+                      set
+                      ))
+
+
+
+(def text (slurp "http://www.clearwhitelight.org/hitch/hhgttg.txt"))
+text
+
+(->> text
+     (re-seq #"[\w|']+")
+     (map #(clojure.string/lower-case %))
+     (remove common-words)
+     frequencies
+     (sort-by val)
+     reverse)
