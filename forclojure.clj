@@ -243,8 +243,8 @@ maparesultados
 (factorial 6)
 
 
-; filtrado de mayúsculas NO LO HE CONSEGUIDO!!! *********************************************************************
-
+; filtrado de mayúsculas SIN RESOLVER!!! *********************************************************************
+; No tentiendo las Regex... pfffff
 
 (re-find #"[A-Z]+" "StrIng")
 
@@ -553,23 +553,122 @@ maparesultados
 (fn [f x] (reductions #(%2 %1) x (repeat f)))
 
 ;#81 Set Interseccion *********************************************************************
-(= (__ #{0 1 2 3} #{2 3 4 5}) #{2 3})
+ (defn intersec [set1 set2]
+  (disj (set (for [x set1]
+         (if (contains? set2 x)
+           x))) nil))
 
-(defn serint [set1 set2]
-  (set (for [x (map hash-set set1)
-         :when (clojure.set/subset? x set2)]
-         x)))
+(intersec #{0 1 2 3} #{2 3 4 5})
+
+;Otras soluciones más elegantes... grrrrr
+(comp set filter)
+(= ((comp set filter) #{0 1 2 3} #{2 3 4 5}) #{2 3})
+(set (filter #{0 1 2 3} #{2 3 4 5}))
+
+(fn [s t] (->> (map s t) (remove nil?) set ))
+(map #{0 1 2 3} #{2 3 4 5})
+(remove nil? (map #{0 1 2 3} #{2 3 4 5}))
+(set (remove nil? (map #{0 1 2 3} #{2 3 4 5})))
+
+;#166 Comparisons *********************************************************************
+
+(defn comparisons [f x y]
+  (cond
+   (f x y) :lt
+   (f y x) :gt
+   :else :eq
+   ))
+
+(comparisons > 0 2)
+
+; #90 Cartesian product *********************************************************************
+(defn prd [x y]
+ (set (for [a x
+        b y]
+     (vector a b))))
+
+(prd #{1 2 3} #{4 5})
 
 
-(when (clojure.set/subset? x set2))
+; #122 Read binary numbers *********************************************************************
+; 4 ejercicios in a row! yuju! i'm on fire!
 
-(serint #{0 1 2 3} #{2 3 4 5})
+(defn binary-to-decimal [x] (int (reduce +
+                                    (map #(* % (Math/pow 2 %2))
+                                         (->> x (map str) (map #(Integer/parseInt %)) reverse)
+                                         (range(count x))))))
 
-(into #{} 1)
+(binary-to-decimal "10010101")
 
-(clojure.set/subset? #{2} #{2 3 4 5})
+;otras soluciones... mecachis!
 
-(apply flatten [#{0} #{1} #{2} #{3}])
+;no entiendo cómo funciona esta, debe ser una propiedad de read-string
+#(read-string (str "2r" %))
+
+(#(read-string (str "2r" %)) "10010101")
+(str "2r" "10010101")
+;en cualquier caso está guay conocer read-string, ya sé como sacar un número de un string
+;sin tener que usar parseInt
+(read-string "1001")
+
+; Lo yo he resuelto con (range (count x)) para obtener los índices de la iteración
+; se puede conseguir con map-indexed
+; ejemplo de solución que lo utiliza
+; tampoco hace nada de Integer/parseInt, lo soluciona con un condicional if
+(fn [s]
+  (reduce + 0
+    (map-indexed (fn [i x]
+      (if (= \1 x)
+        (Math/pow 2 i)
+        0))
+      (reverse s))))
+
+
+; #157 Indexing sequences *********************************************************************
+; ahora sí lo he clavao! en 2 min!
+
+(map-indexed (fn [i x] [x i]) [0 1 3])
+(map-indexed (fn [i x] [x i]) [:a :b :c :d :e])
+
+
+; #88 Symmetric difference *********************************************************************
+
+(defn symmetric-diff [x y]
+ (set (mapcat #(remove (clojure.set/intersection x y) %) [x y])))
+
+(symmetric-diff #{1 2 3 4 5 6} #{1 3 5 7})
+
+; otra solución
+#(into (clojure.set/difference % %2)
+       (clojure.set/difference %2 %))
+
+; #107 lexical closures *********************************************************************
+; Given a positive integer n, return a function (f x) which computes xn.
+
+(defn pow-n [n]
+ (fn [x]
+   (int (Math/pow x n))))
+
+((pow-n 2) 16)
+
+
+; #156 Dot product *********************************************************************
+
+#(reduce + (map * % %2))
+
+; #126 Through the Looking Class
+ (let [x  ]
+  (and (= (class x) x) x))
+
+
+(= (class (java.util.ArrayList.)) (java.util.ArrayList.))
+
+(class (identity nil) )
+
+(identity true)
+
+
+
 
 
 
