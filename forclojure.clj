@@ -656,16 +656,53 @@ maparesultados
 
 #(reduce + (map * % %2))
 
-; #126 Through the Looking Class
- (let [x  ]
+; #126 Through the Looking Class *********************************************************************
+ (let [x (type (class class)) ]
   (and (= (class x) x) x))
 
+; Otras soluciones
+; Class
+; java.lang.Class
+; yo lo había intentado con class, pero es una función, no sabía la diferencia entre class y Class
 
-(= (class (java.util.ArrayList.)) (java.util.ArrayList.))
+; #118 Re-implement map
 
-(class (identity nil) )
+(= [3 4 5 6 7]
+   (__ inc [2 3 4 5 6]))
 
-(identity true)
+
+(map inc [2 3 4 5 6])
+
+
+(defn _map [f x]
+  (loop []
+    ))
+
+
+
+
+
+(loop [x 10]
+  (when (> x 1)
+    (println x)
+    (recur (- x 2))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
