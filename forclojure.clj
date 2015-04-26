@@ -29,11 +29,11 @@
 ; al resultado de aplicar map a una función y unas colecciones. Por ello, la función f
 ; debería devolver como resultado una colección.
 
-(mapcat list v w)
+(mapcat list [1 1 1] [2 2 2])
 ; esto sería igual que
 
-(apply concat (map list v w))
-(map list v w)
+(apply concat (map list [1 1 1] [2 2 2]))
+(map list [1 1 1] [2 2 2])
 
 
 
@@ -665,47 +665,100 @@ maparesultados
 ; java.lang.Class
 ; yo lo había intentado con class, pero es una función, no sabía la diferencia entre class y Class
 
-; #118 Re-implement map
+; #118 Re-implement map *********************************************************************
+; primer intento.
+(defn __map [f x]
+  (loop [result []
+         x x]
+    (if (seq x)
+      (recur (concat result [(f (first x))]) (rest x))
+      result)))
+; segunda versión. A pesar de lazy-seq no funciona para seqs infinitas.
+(defn _map
+  [f x]
+    (lazy-seq (reduce #(conj %1 (f %2)) [] x)))
 
-(= [3 4 5 6 7]
-   (__ inc [2 3 4 5 6]))
-
-
-(map inc [2 3 4 5 6])
-
-
-(defn _map [f x]
-  (loop []
-    ))
-
-
-
-
-
-(loop [x 10]
-  (when (> x 1)
-    (println x)
-    (recur (- x 2))))
+;solución: es la definición de map
+(defn map_
+  ([f x]
+   (lazy-seq
+    (when-let [s (seq x)]
+      (cons (f (first s)) (map_ f (rest s)))))))
 
 
+(_map inc [0 1 2 3])
+
+
+(= [1000000 1000001]
+   (->> (map_ inc (range))
+        (drop (dec 1000000))
+        (take 2)))
+
+; #135 Infix Calculator *********************************************************************
+; mi solución... sigo con el p. loop metido en la cabeza
+; mi problema para usar reduce era no saber como desestructurar...
+
+(defn infixop [i & r]
+  (loop [i i
+         r r]
+  (if (seq r)
+    (recur ((first r) i (second r)) (rest (rest r)))
+    i)))
+
+
+(infixop 1 * 2 + 3 * 4)
+
+; solución de amcnamaras... qué crack
+; una función recursiva
+
+(defn f [a o b & c]
+  (if c
+    (apply f (o a b) c)
+    (o a b)))
+
+; con reduce
+
+(defn r [& c]
+   (reduce #((first %2) %1 (second %2)) (first c) (partition 2 (rest c))))
+
+(r 1 * 2 + 3 * 4)
+
+; #120 Sum of square of digits *********************************************************************
+
+(= 8 (__ (range 10)))
+
+(range 20)
+
+
+(defn _sumsqu [x]
+
+(apply + (map #(Math/pow % 2) (map read-string (map str (into [] (str 15))))))
+
+)
 
 
 
+(defn binary-to-decimal [x] (int (reduce +
+                                    (map #(* % (Math/pow 2 %2))
+                                         (->> x (map str) (map #(Integer/parseInt %)) reverse)
+                                         (range(count x))))))
 
+(binary-to-decimal "10010101")
 
+;no entiendo cómo funciona esta, debe ser una propiedad de read-string
+#(read-string (str "2r" %))
 
+(#(read-string (str "2r" %)) "10010101")
+(str "2r" "10010101")
+(read-string "1001")
 
-
-
-
-
-
-
-
-
-
-
-
+(fn [s]
+  (reduce + 0
+    (map-indexed (fn [i x]
+      (if (= \1 x)
+        (Math/pow 2 i)
+        0))
+      (reverse s))))
 
 
 
