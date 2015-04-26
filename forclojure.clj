@@ -205,33 +205,6 @@ maparesultados
 
 
 
-
-
-
-;fibonacci SIN RESOLVER *********************************************************************
-
-
-#_(take 10
-      (iterate
-       (fn [[x y]] (+ y x)) [1 1] ))
-
-
-#_(take 5 (iterate (partial (fn [[x y]] (+ x y))) [1 1]))
-
-
-
-(defn secret-modifier [id]
-  (let [after (int (rand 10000))]
-  (println after)
-  (+ after 10))
-  )
-
-(secret-modifier 2)
-
-((fn [[x y]] (+ y x)) [3 1] )
-
-
-
 ;FACTORIAL *********************************************************************
 
 (defn factorial [x] (
@@ -749,17 +722,39 @@ maparesultados
 (pascal 11)
 
 ; siempre los hay más idiomáticos... por qué me cuesta tanto usar recur??? por qué zeñó por qué???
-
+; este usa una fómula para el algoritmo que no sé de donde la saca
 (defn pascal_ [i]
   (reduce
     #(conj %1 (* (last %1) (/ (- i %2) %2)))
     [1] (range 1 i)))
 
 
+(pascal_ 4)
 
 
+; Usando una función recursiva. Más parecido a mi solución
+; lo de usar concat mola más que lo que yo he hecho con vec, flatten...
+(fn pt_row [n]
+  (if (= n 1)
+    [1]
+    (concat [1]
+            (map (partial apply +) (partition 2 1 (pt_row (- n 1))))
+            [1])))
 
 
+; #26 fibonacci *********************************************************************
+
+(defn fibonacci [x]
+  (cond
+    (= x 1) [1]
+    (= x 2) [1 1]
+    (>= x 3) (concat (fibonacci (- x 1)) [(#(+ (last %) (last (butlast %))) (fibonacci (- x 1)))])))
+
+
+(fibonacci 10)
+
+
+; #147 Pascal's Trapezoid *********************************************************************
 
 
 
