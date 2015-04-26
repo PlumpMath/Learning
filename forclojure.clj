@@ -724,41 +724,46 @@ maparesultados
 (r 1 * 2 + 3 * 4)
 
 ; #120 Sum of square of digits *********************************************************************
+; yeah yeah yeah
 
-(= 8 (__ (range 10)))
-
-(range 20)
-
-
-(defn _sumsqu [x]
-
-(apply + (map #(Math/pow % 2) (map read-string (map str (into [] (str 15))))))
-
-)
+(defn sumsqu [x]
+  (let [sq (fn [s] (apply + (map (fn [z] (Math/pow z 2))(map read-string (map str (into [] (str s)))))))]
+    (count (filter #(> (sq %) %) x))))
 
 
+(sumsqu (range 1000))
 
-(defn binary-to-decimal [x] (int (reduce +
-                                    (map #(* % (Math/pow 2 %2))
-                                         (->> x (map str) (map #(Integer/parseInt %)) reverse)
-                                         (range(count x))))))
 
-(binary-to-decimal "10010101")
+; #97 Pascal's Triangle *********************************************************************
+; mi solución
 
-;no entiendo cómo funciona esta, debe ser una propiedad de read-string
-#(read-string (str "2r" %))
+(defn pascal [x]
+  (loop [cnt x
+         result [1]]
+    (if (> cnt 1)
+      (recur (dec cnt)  (vec (flatten [1 (map #(apply + %)(partition 2 1 result)) 1])))
+      result
+      )))
 
-(#(read-string (str "2r" %)) "10010101")
-(str "2r" "10010101")
-(read-string "1001")
 
-(fn [s]
-  (reduce + 0
-    (map-indexed (fn [i x]
-      (if (= \1 x)
-        (Math/pow 2 i)
-        0))
-      (reverse s))))
+(pascal 11)
+
+; siempre los hay más idiomáticos... por qué me cuesta tanto usar recur??? por qué zeñó por qué???
+
+(defn pascal_ [i]
+  (reduce
+    #(conj %1 (* (last %1) (/ (- i %2) %2)))
+    [1] (range 1 i)))
+
+
+
+
+
+
+
+
+
+
 
 
 
