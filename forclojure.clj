@@ -1,29 +1,17 @@
 
-(def a [[[a]]])
-(def v [1 2 3 2 1])
-(def w [1 2 2 2 3 4 4 4 4 4 2 5 7])
-(def flat [1 [2 3] 4 [5 6]])
-(def k [:a :b :c :d :e])
-(def s #{1 2 3 4 5})
-(def lista (list 1 2 3 4))
-(def string "racecar")
-(def mayus "Hellooooooooo Woooooooooooorld")
-
-
-
 ;INTERLEAVE sin usar interleave. *********************************************************************
 ;Esta es mi solución poco elegante
 ;mi tendencia todavía al imperative control flow
 
 (defn interl [s t] (loop [result []
-              s s
-              t t]
-(if (and (seq s) (seq t))
-(recur (concat result [(first s) (first t)]) (rest s) (rest t))
-  result)))
+                          s s
+                          t t]
+                     (if (and (seq s) (seq t))
+                       (recur (concat result [(first s) (first t)]) (rest s) (rest t))
+                       result)))
 
 
-(interl v w)
+(interl [1 2 3 2 1] [1 2 2 2 3 4 4 4 4 4 2 5 7])
 
 ;Esta es la más concisa. Usando mapcat, que devuelve el resultado de aplicar concat
 ; al resultado de aplicar map a una función y unas colecciones. Por ello, la función f
@@ -37,8 +25,6 @@
 
 
 
-
-
 ;FLATTEN una coll sin usar flatten *********************************************************************
 ;orden clave --> tree-seq
 ;Páginas de ayuda con tree-seq "http://thornydev.blogspot.com.es/2012/09/beautiful-clojure.html"
@@ -46,11 +32,11 @@
 
 ;Importante!!! Un vector es sequential pero no es seq
 ;Sequential son las listas, los vectores, pero no los mapas o los sets
-(sequential? v)
-(seq? v)
+(sequential? [1 2 3 2 1])
+(seq? [1 2 3 2 1])
 
 ;Tengo varios ejemplos pero no sé cómo funcionan o por qué a veces no funcionan.
-(tree-seq vector? seq flat)
+(tree-seq vector? seq [1 [2 3] 4 [5 6]])
 
 (map first (tree-seq next rest '(:A (:B (:D) (:E)) (:C (:F)))))
 
@@ -98,7 +84,7 @@ lista
 (def not-empty? (complement empty?))
 (empty? [])
 (not-empty? [])
-((complement sequential?) v)
+((complement sequential?) [1 2 3 2 1])
 
 ;Otra forma de solucionar el probema. Flipante
 (defn flt [s]
@@ -127,7 +113,7 @@ lista
     (if (seq s)
       (recur (if (some #(= (first s) %) result) result (concat [(first s)] result)) (rest s))
       (reverse result))))
-(quitarep mayus)
+(quitarep "Hellooooooooo Woooooooooooorld")
 
 ;mi poco elegante solución :S
 (defn elimrep [s]
@@ -138,17 +124,17 @@ lista
       (recur (inc cnt) (if (= (svec cnt)(svec (+ cnt 1))) result (concat [(svec (+ cnt 1))] result)))
       (reverse result)))))
 
-(apply str (elimrep mayus))
+(apply str (elimrep "Hellooooooooo Woooooooooooorld"))
 
 ;otras soluciones más elegantes!
 
-(#(map first (partition-by identity %)) w)
+(#(map first (partition-by identity %)) [1 2 2 2 3 4 4 4 4 4 2 5 7])
 
-(#(partition-by identity %) w) ;(partition-by f coll) Aplica f a cada valor en la colección, cortandola cada vez
+(#(partition-by identity %) [1 2 2 2 3 4 4 4 4 4 2 5 7]) ;(partition-by f coll) Aplica f a cada valor en la colección, cortandola cada vez
                                ; que f devuelve un nuevo valor.
 
 ;otra solución
-(reduce #(do (println %1 %2)(if (= (last %1) %2) %1 (conj %1 %2))) [] w)
+(reduce #(do (println %1 %2)(if (= (last %1) %2) %1 (conj %1 %2))) [] [1 2 2 2 3 4 4 4 4 4 2 5 7])
 ; Si aplico conj a dos vectores como en (conj [1] [2 3]), el resultado sería [1 [2 3]]
 ; Sin embargo al aplicar reduce %2 representa consecutivamente cada elemento de la coleccion a la que lo apliquemos
 
@@ -237,47 +223,47 @@ maparesultados
 
 
 ;PALINDROME *********************************************************************
-(= v (reverse v))
+(= [1 2 3 2 1] (reverse [1 2 3 2 1]))
 
-(reverse string)
+(reverse "racecar")
 
-(apply str (reverse string))
+(apply str (reverse "racecar"))
 
 (#(cond
    (coll? %)  (= % (reverse %))
    (string? %) (= % (apply str (reverse %)))
    )
-  string)
+  "racecar")
 
 ;otras coluciones. En vez de volver a convertir en string la secuencia para que coincida con el
 ; original, lo que hace es convertir primero el original en una secuencia. De esta forma sirve
 ; tanto para collecciones como para strings
 
-(#(= (seq %) (reverse %)) string)
+(#(= (seq %) (reverse %)) "racecar")
 
 
 
 ;SECUENCIA INVERTIDA. mi solución. sin usar rseq *********************************************************************
-(#(seq (replace (vec %) (vec (take (count %) (iterate dec (- (count %) 1)))))) s)
+(#(seq (replace (vec %) (vec (take (count %) (iterate dec (- (count %) 1)))))) #{1 2 3 4 5})
 
 ;yo no había tenido en cuenta esta posibilidad. No sabía como intertir el orden
 ; de los valores que me da range: asignando al paso -1
-(range (count v) -1 -1)
+(range (count [3 2 1 3]) -1 -1)
 
 
 ;soluciones más simples al ejemplo anterior
-(into () v) ; () es una secuencia vacía. Con into metemos los elementos de v en la secuencia
-            ; vacía, al hacerlo empieza por el último y acaba por el primero. por eso la
-            ; secuencia aparece invertida
-(into () s)
-(into () lista) ; funciona también para listas
+(into () [1 2 3 2 1]) ; () es una secuencia vacía. Con into metemos los elementos de v en la secuencia
+                      ; vacía, al hacerlo empieza por el último y acaba por el primero. por eso la
+                      ; secuencia aparece invertida
+(into () #{1 2 3 4 5})
+(into () (list 1 2 3 4)) ; funciona también para listas
 
 ;conj me devuelve la colección con el o los nuevos argumentos añadidos.
 ;si lo hago sin reduce entiende que el único argumento que le estoy pasando es el v
 ; y lo mete tal cual en la lista vacía. Si añado reduce antes, hace eso pero con cada
 ; elemento del vector
-(reduce conj () v )
-(conj () v)
+(reduce conj () [1 2 3 2 1] )
+(conj () [1 2 3 2 1])
 
 ; la siguiente solución no es elegante pero es un ejemplo de cómo usar loop y recur
 ; REVISAR!
@@ -286,21 +272,21 @@ maparesultados
          s s]
     (if (seq s)
       (recur (concat [(first s)] result) (rest s))
-      result))) k)
+      result))) [:a :b :c :d :e])
 
 ; función que devuelve una secuencia sin los números pares a partir de una colección
 ; Si queremos iterar por los elementos de una colección --> for!!!!
 ; podemos usar :when para que haga algo sólo cuando se cumpla esa condición
 (defn odd [x] (for [a x :when (odd? a)] a))
-(odd v)
+(odd [1 2 3 2 1])
 
 ;hacen lo mismo que la de arriba. Usando remove quitamos los elementos que cumplen
 ; la condición de ser par
-(remove even? v)
-(remove even? s)
+(remove even? [1 2 3 2 1])
+(remove even? #{1 2 3 4 5})
 
 ;otras opciones. Usando filter, filtramos los elementos que son impares
-(filter odd? v)
+(filter odd? [1 2 3 2 1])
 
 
 
@@ -688,6 +674,7 @@ maparesultados
   (if c
     (apply f (o a b) c)
     (o a b)))
+(f 1 * 2 + 3 * 4)
 
 ; con reduce
 
@@ -754,10 +741,448 @@ maparesultados
 (fibonacci 10)
 
 
-; #147 Pascal's Trapezoid *********************************************************************
+; #128 Recognize Playing Cards *********************************************************************
+; Mi penca solución...
+(defn rpc [x]
+ (let [suit (let [s (str (first x))]
+               (cond
+                (= s "S") :spade
+                (= s "H") :heart
+                (= s "D") :diamond
+                (= s "C") :club
+               ))
+       rank (let [r (str (last x))]
+               (cond
+                (= r "2") 0
+                (= r "3") 1
+                (= r "4") 2
+                (= r "5") 3
+                (= r "6") 4
+                (= r "7") 5
+                (= r "8") 6
+                (= r "9") 7
+                (= r "T") 8
+                (= r "J") 9
+                (= r "Q") 10
+                (= r "K") 11
+                (= r "A") 12
+                ))]
+   {:suit suit :rank rank}))
+
+;otras soluciones más elegantes:
+
+((#(fn [[a b]]
+  {:suit (% a) :rank (if (% b) (% b) (- (int b) 50))}
+  )
+(zipmap "DHCTJQKA" [:diamond :heart :club 8 9 10 11 12])) "DQ")
+
+;paso a paso:
+;con esto construyo un mapa donde guardo todas las correspodencias, tanto las de los suits como las de los ranks (solo para las letras)
+(zipmap "DHCTJQKA" [:diamond :heart :club 8 9 10 11 12])
+
+((zipmap "DHCTJQKA" [:diamond :heart :club 8 9 10 11 12]) \D)
+((zipmap "DHCTJQKA" [:diamond :heart :club 8 9 10 11 12]) \Q)
+
+;una solución parecida a la mía pero un pelín más concisa gracias a condp
+; no necesito usar str, si en vez de poner las letras como strings "A" las pongo como carácter \A
+(fn [lp]
+  (let [suit (condp = (first lp)
+               \S :spade
+               \H :heart
+               \D :diamond
+               \C :club)
+        rank (condp = (second lp)
+               \2 0
+               \3 1
+               \4 2
+               \5 3
+               \6 4
+               \7 5
+               \8 6
+               \9 7
+               \T 8
+               \J 9
+               \Q 10
+               \K 11
+               \A 12)]
+    {:suit suit :rank rank}))
+
+;esta es la caña
+(fn [[s r]]
+    { :suit ({\S :spade \H :heart \D :diamond \C :club} s)
+      :rank ((zipmap "23456789TJQKA" (range)) r) })
+
+;Tengo que acordarme de usar mejor destructuring! en este caso al escribir el argumento de la función como [s r],
+;no hace falta luego usar first o second...
+;Usa s y r como argumentos para buscar dentro de un mapa.
+
+
+; #153 Pairwise Disjoint Sets *********************************************************************
+; Given a set of sets, create a function which returns true if no two of those sets have any elements in
+;common and false otherwise. Some of the test cases are a bit tricky, so pay a little more attention to them.
+
+(defn pds [set]
+   (every? empty? (for [x set y set :while (not= x y)] (clojure.set/intersection x y))))
+
+(= (pds #{#{(= "true") false}
+         #{:yes :no}
+         #{(class 1) 0}
+         #{(symbol "true") 'false}
+         #{(keyword "yes") ::no}
+         #{(class '1) (int \0)}})
+   false)
+
+;; #46 Flipping out *********************************************************************
+;; Write a higher-order function which flips the order of the arguments of an input function.
+
+(defn flip [funcion]
+  (fn [a b] (funcion b a))
+  )
+
+;; #44 Rotate sequence
+;; Write a function which can rotate a sequence in either direction.
+
+(defn rotate [x coll]
+  (let [a (mod x (count coll))]
+  (concat (drop a coll) (take a coll))))
+
+(= (rotate 2 [1 2 3 4 5]) '(3 4 5 1 2))
+
+(= (rotate -2 [1 2 3 4 5]) '(4 5 1 2 3))
+
+;; #43 Reverse Interleave *********************************************************************
+;; Write a function which reverses the interleave process into x number of subsequences.
+
+
+(defn rinterleave [coll paso]
+ (apply map vector (partition paso coll)))
+
+
+(apply map vector ['(0 1 2) '(3 4 5) '(6 7 8)])
+
+
+(= (rinterleave [1 2 3 4 5 6] 2) '((1 3 5) (2 4 6)))
+
+(= (rinterleave (range 9) 3) '((0 3 6) (1 4 7) (2 5 8)))
+
+
+;; #50 Split by Type *********************************************************************
+;; Write a function which takes a sequence consisting of items with
+;; different types and splits them up into a set of homogeneous sub-sequences.
+;; The internal order of each sub-sequence should be maintained,
+;; but the sub-sequences themselves can be returned in any order (this is why 'set' is used in the test cases).
+
+
+(defn split_type [x] (vals (group-by type x)))
+
+(= (set (split_type [:a "foo"  "bar" :b])) #{[:a :b] ["foo" "bar"]})
+
+;; #55 Count Occurrences *********************************************************************
+;; Write a function which returns a map containing the number of occurences of each distinct item in a sequence.
+;; Special restrictions: frequencies
+
+
+(defn counto [coll]
+  (let [a (group-by identity coll)]
+    (zipmap (keys a) (map #(count %)(vals a)))))
+
+
+;; para aclararme entre apply y map:
+(max 2 3 4)
+(max [2 3 4])
+(apply max [2 3 4])
+(map inc [1 2 3])
+(map #(map inc %) [[1 2 3] [4 5 6]])
+(map #(apply max %) [[1 2 3][4 5 6][7 8 9]])
+
+
+(= (counto '([1 2] [1 3] [1 3])) {[1 2] 1, [1 3] 2})
+(= (counto [:b :a :b :a :b]) {:a 2, :b 3})
+(= (counto [1 1 2 3 2 1 1]) {1 4, 2 2, 3 1})
+
+;; soluciones alternativas
+;; esta es parecida a la mia. Usa reduce.
+#(let [instances (group-by identity %)]
+   (reduce (fn [acc v] (assoc acc v (-> (instances v) count)))
+           {}
+           (keys instances)))
+;;
+(fn [s]
+  (into {}
+    (for [[k v] (group-by identity s)] [k (count v)])))
+
+;;
+reduce #(update-in % [%2] (fnil inc 0)) {}
+
+;;
+(fn [c]
+  (reduce #(assoc % %2 (count (filter #{%2} c))) {} c))
+
+
+;; #56 Find Distinct Items *********************************************************************
+
+;; Write a function which removes the duplicates from a sequence. Order of the items must be maintained.
+;; Special Restrictions: distinct
+
+(= (_distinct [1 2 1 3 1 2 4]) [1 2 3 4])
+
+(= (_distinct [:a :a :b :b :c :c]) [:a :b :c])
+
+(= (_distinct (range 50)) (range 50))
+
+;; esta solución funciona, pero no mantiene el orden. Por eso no sirve para (range 50)
+(defn distinct_ [coll]
+  (keys (group-by identity coll)))
+
+
+;; Esta sí funciona, pero para ello, es muy importante que en el if, si es verdad el predicado,
+;; la devolución sea %,
+(defn _distinct [coll] (reduce #(if (some #{%2} %) % (conj % %2)) [] coll))
+
+
+;; #58 Function composition *********************************************************************
+;; Write a function which allows you to create function compositions.
+;; The parameter list should take a variable number of functions, and create a function that applies them from right-to-left.
+;; Special Restrictions: comp
+
+(= [3 2 1] ((comp2 rest reverse) [1 2 3 4]))
+
+(= 5 ((compvariadic (partial + 3) second) [1 2 3 4]))
+
+(= true ((compvariadic zero? #(mod % 8) +) 3 5 7 9))
+
+(= "HELLO" ((compvariadic #(.toUpperCase %) #(apply str %) take) 3 "hello"))
+
+(comp2 (#(- % 5) +) 2 3 5)
+
+(take 5 "hello world")
+
+
+;; primera solución encontrada usando loop y recur. Pero estoy segura que hay alguna más escueta.
+(defn comp_ [& r]
+  (fn [coll] (loop [result coll
+                    r r]
+               (if r
+                 (recur ((last r) result) (butlast r))
+                 result))))
+
+
+((comp_ rest reverse) [1 2 3 4])
+
+
+(defn compvariadic [& r]
+  (fn
+    ([a] (loop [arguments a
+                    r r]
+               (if r
+                 (do (println "1" arguments) (recur ((last r) arguments) (butlast r)))
+                 arguments)))
+     ([a b] (loop [arguments [a b]
+                    r r]
+               (if r
+                 (do (println "2" arguments) (recur ((last r) arguments) (butlast r)))
+                 arguments)))
+    ([a b & more] (loop [arguments [a b more]
+                    r r]
+               (if r
+                (do (println "3" arguments)(recur ((last r) arguments) (butlast r)))
+                 arguments)))
+    ))
+
+
+(defn comp2 [& r]
+  (fn
+    ([& more] (loop [arguments [more]
+                    r r]
+               (if r
+                (do (println arguments)(recur ((last r) arguments) (butlast r)))
+                 arguments)))
+    ))
+
+
+((comp #(- % 5) +) 2 3 5)
+
+(defn f
+  ([f a] (f a))
+  ([f a b & more] (reduce f (f a b) more)))
+
+(f reverse [1 2 3 4])
+(f + 2 3)
+(f + 2 3 4 5)
 
 
 
+
+
+
+
+
+
+
+(defn suma [& more]
+  (reduce + more)
+  )
+
+(suma 2 5 6)
+
+
+
+
+  ([x y & more]
+     (reduce1 + (+ x y) more))
+
+
+
+
+
+
+(defn res [& s] s)
+(res [1 2 3 4])
+(res 1 2 3 4)
+
+
+
+(apply reverse (res [1 2 3 4]))
+(apply rest (apply reverse (res [1 2 3 4])))
+
+
+
+(= "HELLO" ((comp_ #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
+
+(= true ((__ zero? #(mod % 8) +) 3 5 7 9))
+
+
+((comp zero? #(mod % 8) +) 3 5 7 9)
+
+( #(mod % 8) (+ 3 5 7 9))
+
+
+
+(defn f [a o b & c]
+  (if c
+    (apply f (o a b) c)
+    (o a b)))
+
+
+(defn sum
+  ([vals] (sum vals 0)) ;; ~~~1~~~
+  ([vals accumulating-total]
+     (if (empty? vals) ;; ~~~2~~~
+       accumulating-total
+       (sum (rest vals) (+ (first vals) accumulating-total)))))
+
+
+
+(defn gcdvar2 [& numbers]
+  (let [gcd (fn gcd2 [x y] (if (= y 0)
+                             x
+                            (gcd2 y (rem x y))))]
+    (reduce gcd numbers)))
+
+(gcdvar2 8 24 28)
+
+
+
+(defn lcmprueba [& numbers]
+   (when (seq numbers)
+   (println (first numbers))
+   (recur (rest numbers))))
+
+
+(defn binary-to-decimal [x] (int (reduce +
+                                    (map #(* % (Math/pow 2 %2))
+                                         (->> x (map str) (map #(Integer/parseInt %)) reverse)
+                                         (range(count x))))))
+
+
+
+;; #54 Partition a sequence *********************************************************************
+;; Write a function which returns a sequence of lists of x items each.
+;; Lists of less than x items should not be returned.
+;; Special Restrictions: partition, partition-all
+
+;; Primera solución encontrada
+(defn part [n coll]
+  (loop [result []
+         s coll]
+    (if (seq s)
+      (recur (if (>= (count s) n) (conj result (take n s)) result) (drop n s))
+      result)))
+
+(= (part 3 (range 9)) '((0 1 2) (3 4 5) (6 7 8)))
+
+(= (part 2 (range 8)) '((0 1) (2 3) (4 5) (6 7)))
+
+(= (part 3 (range 8)) '((0 1 2) (3 4 5)))
+
+
+;; #67 Prime numbers
+;; Write a function which returns the first x number of prime numbers.
+
+
+(= (__ 5) [2 3 5 7 11])
+(= (last (__ 100)) 541)
+
+
+(defn nprimo [a b]
+(reduce #(if (loop [den (dec %2)]
+               (if (zero? (rem %2 den))
+                 (if (= den 1)
+                   true
+                   false)
+                 (recur (dec den)))) (conj % %2)) a b))
+
+
+
+(defn nprimo [coll]
+ (reduce #(if (loop [den (dec %2)]
+               (if (zero? (rem %2 den))
+                 (if (= den 1)
+                   true
+                   false)
+                 (recur (dec den)))) (do (println % %2) (conj % %2))) [] coll))
+
+
+(#(loop [den (dec %)]
+               (if (zero? (rem % den))
+                 (if (= den 1)
+                   true
+                   false)
+                 (recur (dec den)))) 2)
+
+(reduce #(conj % %2) [] [1 2 3])
+
+
+%2 --> 1
+(dec 1)
+(rem 1 0)
+
+
+(nprimo [2 3 4 5 6 7 8 9 10])
+
+
+(defn primo? [x]
+  (loop [den (dec x)]
+    (if (zero? (rem x den))
+      (if (= den 1)
+        true
+        false)
+      (recur (dec den)))))
+
+
+(primo? 3)
+
+
+(defn _map
+  [f x]
+     (reduce #(conj %1 (f %2)) [] x))
+
+
+
+
+
+
+(primo? 8)
 
 
 
