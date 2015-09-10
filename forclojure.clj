@@ -1171,7 +1171,7 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 
 
 (primo? 3)
-
+(primo? 0)
 
 (defn _map
   [f x]
