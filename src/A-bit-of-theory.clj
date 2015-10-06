@@ -36,6 +36,63 @@
 ;; expands to
 (first (.split (.replace (.toUpperCase "a b c d")  "A" "X" ) " "))
 
+;; ---------------------------------------------
+;; The Weird and Wonderful Characters of Clojure
+;; ---------------------------------------------
+
+;; En: https://yobriefca.se/blog/2014/05/19/the-weird-and-wonderful-characters-of-clojure/?utm_content=buffer88032&utm_medium=social&utm_source=twitter.com&utm_campaign=buffer
+
+;; # -> The Dispatch macro
+;; # después de un symbol sirve para generar automáticamente un nuevo symbol
+
+;; # También se ve en los tagged literals como: #inst, #js
+
+(java.util.Date.)
+
+;; #{ Set macro
+
+;; #_ Discard macro. La form que vaya detrás no se tiene en cuenta
+
+;; #" Regular expression macro
+
+;; #( Function macro
+;; % not a macro. placeholder for use in the #( macro.
+
+;; #' Var macro
+
+;; @ Deref macro. Shorthand equivalent of the deref function
+
+;; ^ Metadata. Metadata is a map of values. ^ es equivalente a with-meta
+(def ^{ :debug true } five 5)
+(meta #'five)
+
+;; Cuando se trata de añadir un solo value cuyo valor es true, es puede hacer así
+(def ^:debug six 6)
+(meta #'six)
+
+;; Another use of ^ is for type hints. These are used to tell the compiler what type the value
+;; will be and allow it to perform type specific optimisations thus potentially making resultant code a bit faster.
+(def ^Integer five 5)
+(meta #'five)
+
+;; ^Integer ha añadido la key :tag al mapa de metadata.
+;; También se puede hacer shorthand
+(def ^Integer ^:private seven 7)
+(meta #'seven)
+
+;;There are several metadata keys that have special interpretation:
+;;  :private A boolean indicating the access control for the var.
+;;  :doc A string containing short (1-3 line) documentation for the var contents
+;;  :test A fn of no args that uses assert to check various operations.
+;;  :tag A symbol naming a class or a Class object that indicates the Java type of the object
+;;       in the var, or its return value if the object is a fn.
+
+
+
+
+
+
+
 
 
 
@@ -93,9 +150,6 @@ Espe
 ;; específica para cada una de las funciones del protocolo
 
 
-
-
-
 ;; Primero definimos un protocolo
 
 (defprotocol Datos-personales
@@ -115,10 +169,6 @@ Espe
 (quien-es pepe)
 (años pepe)
 (donde-vive pepe)
-
-
-
-
 
 ;;+++++++++++++++++++++++++++++++++++++++++++++
 
@@ -161,32 +211,16 @@ Espe
 (quux hola 8 9)
 
 
-;; +++++++++ Ejemplo thin.ng geom +++++++++++
-
-
-
-(defn triangle2
-
-  ([a b c] (Triangle2. [(vec a) (vec b) (vec c)])))
-
-
-(extend-type Triangle2
-  PArea
-  (area [_] (apply (fn tri-area2 [a b c] (* 0.5 (norm-sign2 a b c))) (:points _)))
-
-  PBoundary
-  (contains-point?
-   [_ p] (apply gu/point-in-triangle2? p (:points _)))
-
-  )
-
+;; +++++++++ Ejemplo basado en thin.ng geom +++++++++++
 
 (defprotocol Area
-  (area [_]))
+  (area [_])
+  (half-area [_]))
 
-(defprotocol Altura
-  (altura [_]))
+(defprotocol Perimetro
+  (perimetro [_]))
 
+;;++++++++++++++++++++++++++++++++++++++++++++++++++
 (defrecord Cuadrado [points])
 
 (defn crea-cuadrado
@@ -194,20 +228,74 @@ Espe
   superior izquierda y la dimensión de su lado"
   ([x y l] (Cuadrado. [(vector x y)(vector x (+ y l))(vector (+ x l) (+ y l))(vector (+ x l) y)])))
 
+
 (extend-type Cuadrado
   Area
-  (area [_] ((Math/pow (- (-> (:points _) first second)(-> (:points _) second second)) 2))))
+  (area [_] (let [[[_ a][_ b][_ _][_ _]] (:points _)
+                  l (- b a)]
+              (* l l)))
+  (half-area [_] (/ (area _) 2))
+
+  Perimetro
+  (perimetro [_] (let [[[_ a][_ b][_ _][_ _]] (:points _)
+                       l (- b a)]
+                (* l 4))))
 
 (def micuadrado (crea-cuadrado 10 10 10))
 
 (area micuadrado)
 
+(half-area)
+
+(perimetro micuadrado)
+
+;;++++++++++++++++++++++++++++++++++++++++++++++++++
+
+(defrecord Rectangulo [points])
+
+(defn crea-rectangulo
+  "Crea una entidad rectangulo a partir de las coordenadas de su esquina
+  superior izquierda, su anchura y su altura"
+  ([x y w h] (Rectangulo. [(vector x y)(vector x (+ y h))(vector (+ x w) (+ y h))(vector (+ x w) y)])))
 
 
+(extend-type Rectangulo
+  Area
+  (area [_] (let [[[_ a][c b][d _][_ _]] (:points _)
+                  h (- b a)
+                  w (- d c)]
+              (* h w)))
+  Perimetro
+  (perimetro [_] (let [[[_ a][c b][d _][_ _]] (:points _)
+                       h (- b a)
+                       w (- d c)]
+                (+ (* h 2) (* w 2)))))
 
 
+(def mirectangulo (crea-rectangulo 10 10 100 50))
+(area mirectangulo)
+(perimetro mirectangulo)
 
 
+;; ******reify*******
+
+;; Explicado a la ligera. Es un macro parecido a defrecord, pero en vez de crear una clase de
+;; objetos que pueden ser instanciada repetidamente, crea un único objeto que implementa el
+;; protocolo
+
+(defprotocol Poo
+  (aaa [this])
+  (bbb [this st]))
+
+(def athing
+  (reify Poo
+    (aaa [_] (str _))
+    (bbb [_ st] (str st))))
+
+(aaa athing)
+(bbb athing "hola")
+
+;; Podemos usar athing mientras nos sea útil y luego mandarlo al Garbage Collection (GC)
 
 
 
