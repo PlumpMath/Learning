@@ -1,40 +1,7 @@
 (ns Learning.A_bit_of_theory
+  (:require [swiss.arrows :refer :all])
   )
 
-
-
-
-;; --------
-;; -> y ->>
-;; --------
-
-
-;; -> Inserts x as the second item in the first form and so on
-(-> 10
-    (+ 20)
-    (/ 2)
-    (- 5))
-
-;; expands to
-(- (/ (+ 10 20) 2) 5)
-
-;; ->> Inserts x as the last item in the first form and so on
-(->> 10
-    (+ 20)
-    (/ 2)
-    (- 5))
-
-;; expands to
-(- 5 (/ 2 (+ 20 10)))
-
-(-> "a b c d"
-    .toUpperCase
-    (.replace "A" "X")
-    (.split " ")
-    first)
-
-;; expands to
-(first (.split (.replace (.toUpperCase "a b c d")  "A" "X" ) " "))
 
 ;; ---------------------------------------------
 ;; The Weird and Wonderful Characters of Clojure
@@ -87,14 +54,73 @@
 ;;  :tag A symbol naming a class or a Class object that indicates the Java type of the object
 ;;       in the var, or its return value if the object is a fn.
 
+;; ' Quote macro. To quote forms and prevent their evaluation. = quote
+;; : Keyword. Indicator for a Keyword: interned string that provides fast comparison and lower memory overhead.
+(keyword "hola")
 
+;; :: Qualified keyword. To fully qualify a keyword with the current namespace.
 
+;; $ Inner class reference
+;; BaseXClient$EventNotifier. EventNotifier is an inner interface of the BaseXClient class.
 
+;;-> ->> some-> cond-> as-> etc. - Threading macros
 
+;; --------
+;; -> y ->>
+;; --------
 
+(-> 25 Math/sqrt int str Integer.) ;; En una línea
+(-> 25                             ;; O multilínea. En ambos casos las funciones pueden ir
+    (Math/sqrt)                    ;; con paréntesis o sin ellos. No depende de si es una línea
+    (int)                          ;; o multilínea, sino de la propia funcion
+    (str)
+    (Integer.))
 
+;; -> Inserts x as the second item in the first form and so on
+;; Las comas (espacios en blanco en clojure) son para explicitar donde se inserta el
+;; valor o el resultado de la anterior forma
+(-> 10
+    (+ ,,, 20)
+    (/ ,,, 2)
+    (- ,,, 5))
 
+;; expands to
+(- (/ (+ 10 20) 2) 5)
 
+;; ->> Inserts x as the last item in the first form and so on
+(->> 10
+    (+ 20 ,,,)
+    (/ 2 ,,,)
+    (- 5 ,,,))
+
+;; expands to
+(- 5 (/ 2 (+ 20 10)))
+
+(-> "a b c d"
+    .toUpperCase
+    (.replace "A" "X")
+    (.split " ")
+    first)
+
+;; expands to
+(first (.split (.replace (.toUpperCase "a b c d")  "A" "X" ) " "))
+
+;; Dentro de clojure.core hay más arrow forms; some->, cond->
+
+(some #{2} [1 2 3 2 4])
+(some #{5} [1 2 3 2 4])
+(-> {:a 1} :a inc)
+(-> {:a 1} :b inc) ;; throw an exception
+(some-> {:a 1} :b inc)
+
+;; Hay también toda una librería sobre arrows: swiss.arrows
+(-<> 0 [<> 1 2 3])
+
+;; ~ Unquote macro.
+(reduce + '(1 2))
+(reduce + '(~1 2)) ;; throw an exception
+;; En esto se basa la construcción de macros wich are functions that returns
+;; blocks of syntax with parts evaluated in varying contexts.
 
 ;; ----------------------------
 ;; Protocols, records and types
