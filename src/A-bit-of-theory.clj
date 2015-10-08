@@ -29,6 +29,7 @@
 
 ;; @ Deref macro. Shorthand equivalent of the deref function
 
+
 ;; ^ Metadata. Metadata is a map of values. ^ es equivalente a with-meta
 (def ^{ :debug true } five 5)
 (meta #'five)
@@ -54,7 +55,34 @@
 ;;  :tag A symbol naming a class or a Class object that indicates the Java type of the object
 ;;       in the var, or its return value if the object is a fn.
 
+
 ;; ' Quote macro. To quote forms and prevent their evaluation. = quote
+
+;; ` Syntax quote. When used on a symbol it resolves the symbol in the current context
+
+;; ~ Unquote macro.
+(reduce + '(1 2))
+(reduce + '(~1 2)) ;; throw an exception
+;; En esto se basa la construcción de macros wich are functions that returns
+;; blocks of syntax with parts evaluated in varying contexts.
+
+;; ~@ Unquote splicing macro
+;; Where unquote (~) deals with single values (or treats its attached item as a single item)
+;; ~@ works on lists and expands them out into multiple statements.
+(def three-and-four (list 3 4))
+'(1 ~three-and-four) ;; (1 (3 4))
+'(1 ~@three-and-four) ;; (1 3 4)
+
+;; ` Syntax quote, ~ Unquote macro y  ~@ Unquote splicing macro se usan frecuentemente
+;; en la construcción de macros:
+
+(defmacro debug [body]
+  `(let [val# ~body]
+        (println "DEBUG: " val#)
+        val#))
+
+(debug (+ 2 2))
+
 ;; : Keyword. Indicator for a Keyword: interned string that provides fast comparison and lower memory overhead.
 (keyword "hola")
 
@@ -62,6 +90,20 @@
 
 ;; $ Inner class reference
 ;; BaseXClient$EventNotifier. EventNotifier is an inner interface of the BaseXClient class.
+
+;; *var-name* Earmuffs. It´s a naming convention (not a rule) used to denote special vars. Most commonly
+;; this seems to be used to denote dynamic vars i.e. ones that can change depending on where you are in the program.
+
+;; >!!, <!!, >! & <! core.async channel macros
+;; These symbols are channel operations in core.async a library for channel based asynchronous programming
+;; (specifically CSP - Communicating Sequential Processes).
+
+;; <symbol>? Predicate Marker. It´s a convention to indicate that it is a predicate
+
+;; <symbol>! Unsafe Operations. Convention for names of functions/macros that are not safe in STM transactions (Software Transactional Memory)
+;; Commonly for funcion whose purpose is to mutate state e.g connecting to a data store, updating an atom or closing a file stream.
+
+;; _ Irrelevant var
 
 ;;-> ->> some-> cond-> as-> etc. - Threading macros
 
@@ -116,11 +158,12 @@
 ;; Hay también toda una librería sobre arrows: swiss.arrows
 (-<> 0 [<> 1 2 3])
 
-;; ~ Unquote macro.
-(reduce + '(1 2))
-(reduce + '(~1 2)) ;; throw an exception
-;; En esto se basa la construcción de macros wich are functions that returns
-;; blocks of syntax with parts evaluated in varying contexts.
+
+
+
+
+
+
 
 ;; ----------------------------
 ;; Protocols, records and types
