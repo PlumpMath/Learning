@@ -202,17 +202,6 @@ maparesultados
 (factorial 6)
 
 
-; filtrado de mayúsculas SIN RESOLVER!!! *********************************************************************
-; No tentiendo las Regex... pfffff
-
-(re-find #"[A-Z]+" "StrIng")
-
-(def a (re-matcher #"[A-Z]" "StrInG"))
-(re-matcher #"[A-Z]" "StrInG")
-(re-find a)
-
-(re-groups a)
-
 
 ;MAX. Encontrar el máx de una serie de números. Esta es mi opción: *********************************************************************
 
@@ -945,17 +934,37 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 ;; The parameter list should take a variable number of functions, and create a function that applies them from right-to-left.
 ;; Special Restrictions: comp
 
-(= [3 2 1] ((comp2 rest reverse) [1 2 3 4]))
+(= [3 2 1] ((comp rest reverse) [1 2 3 4]))
 
-(= 5 ((compvariadic (partial + 3) second) [1 2 3 4]))
+(= 5 ((comp (partial + 3) second) [1 2 3 4]))
 
-(= true ((compvariadic zero? #(mod % 8) +) 3 5 7 9))
+(= true ((comp zero? #(mod % 8) +) 3 5 7 9))
 
-(= "HELLO" ((compvariadic #(.toUpperCase %) #(apply str %) take) 3 "hello"))
+(= "HELLO" ((comp #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
 
-(comp2 (#(- % 5) +) 2 3 5)
 
-(take 5 "hello world")
+(defn adder [saludo]
+  (fn [nombre] (str saludo " " nombre)))
+
+((adder "hola") "Espe")
+
+
+
+(defn comp_ [& f]
+  (fn [& args]
+
+      (apply (first f) args)
+
+    ))
+
+((comp_ rest reverse) [1 2 3 4])
+((comp_ zero? #(mod % 8) +) 3 5 7 9)
+
+
+
+
+
+
 
 
 ;; primera solución encontrada usando loop y recur. Pero estoy segura que hay alguna más escueta.
@@ -965,9 +974,6 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
                (if r
                  (recur ((last r) result) (butlast r))
                  result))))
-
-
-((comp_ rest reverse) [1 2 3 4])
 
 
 (defn compvariadic [& r]
@@ -999,16 +1005,6 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
                  arguments)))
     ))
 
-
-((comp #(- % 5) +) 2 3 5)
-
-(defn f
-  ([f a] (f a))
-  ([f a b & more] (reduce f (f a b) more)))
-
-(f reverse [1 2 3 4])
-(f + 2 3)
-(f + 2 3 4 5)
 
 
 
@@ -1116,7 +1112,7 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 (= (part 3 (range 8)) '((0 1 2) (3 4 5)))
 
 
-;; #67 Prime numbers
+;; #67 Prime numbers SIN RESOLVERRRR
 ;; Write a function which returns the first x number of prime numbers.
 
 
@@ -1179,11 +1175,54 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 
 
 
-
-
-
 (primo? 8)
 
 
+
+;; #29 Get the Caps
+
+;; Write a function which takes a string and returns a new string containing only the capital letters.
+
+
+(#(apply str (re-seq #"[A-Z]" %)) "HeLlO, WoRlD!")
+
+;; #95 To Tree, or not to Tree
+;; Write a predicate which checks whether or not a given sequence represents a binary tree.
+;; Each node in the tree must have a value, a left child, and a right child.
+
+
+(= (tree? '(:a (:b nil nil) nil)) true)
+
+(= (tree? '(:a (:b nil nil))) false)
+
+(= (tree? [1 nil [2 [3 nil nil] [4 nil nil]]]) true)
+
+(= (tree? [1 [2 nil nil] [3 nil nil] [4 nil nil]]) false)
+
+(= (tree? '(:a nil ())) false)
+
+
+(defn tree? [[v i d :as nodo]]
+  (if (= 3 (count nodo))
+     (if-not (or (= nil v)(coll? v))
+      (if (= i nil)
+        (if (= d nil)
+          true
+          (if (coll? d)
+            (tree? d)
+            false))
+        (if (coll? i)
+          (tree? i)
+          false))
+      false)
+      false))
+
+;; Otras soluciones
+
+(defn tree-2? [e]
+  (or (nil? e)
+      (and (counted? e)
+           (= 3 (count e))
+           (every? tree? (next e)))))
 
 

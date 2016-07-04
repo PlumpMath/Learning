@@ -367,9 +367,13 @@ Espe
 ;; Podemos usar athing mientras nos sea útil y luego mandarlo al Garbage Collection (GC)
 
 
+;; *************************************************************************************
 
+(defn mmap [m f a] (->> m (f a) (into (empty m))))
 
+(mmap {1 {:id 1 :title "hola" :done false} 2 {:id 2 :title "foo" :done false}} map #(assoc-in % [1 :done] true))
 
+(map #(assoc-in % [1 :done] true) {1 {:id 1 :title "hola" :done false} 2 {:id 2 :title "foo" :done false}})
 
-
+(mmap {1 {:id 1 :title "hola" :done false} 2 {:id 2 :title "foo" :done true}} remove #(get-in % [1 :done]))
 
