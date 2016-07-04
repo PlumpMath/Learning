@@ -191,7 +191,9 @@ maparesultados
 
 
 
-;FACTORIAL *********************************************************************
+;; #42 Factorial Fun *********************************************************************
+
+(= (__ 5) 120)
 
 (defn factorial [x] (
      loop [cnt x acc 1]
@@ -200,6 +202,13 @@ maparesultados
        (recur (dec cnt) (* cnt acc))
        )))
 (factorial 6)
+
+;; Otras soluciones
+(#(reduce * % (next (range %))) 5)
+
+#(reduce * (range % 0 -1))
+
+#(apply * (range 1 (inc %)))
 
 
 
@@ -235,7 +244,7 @@ maparesultados
 ;SECUENCIA INVERTIDA. mi solución. sin usar rseq *********************************************************************
 (#(seq (replace (vec %) (vec (take (count %) (iterate dec (- (count %) 1)))))) #{1 2 3 4 5})
 
-;yo no había tenido en cuenta esta posibilidad. No sabía como intertir el orden
+;yo no había tenido en cuenta esta posibilidad. No sabía como invertir el orden
 ; de los valores que me da range: asignando al paso -1
 (range (count [3 2 1 3]) -1 -1)
 
@@ -934,161 +943,86 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 ;; The parameter list should take a variable number of functions, and create a function that applies them from right-to-left.
 ;; Special Restrictions: comp
 
-(= [3 2 1] ((comp rest reverse) [1 2 3 4]))
+(= [3 2 1] ((comp_ rest reverse) [1 2 3 4]))
 
-(= 5 ((comp (partial + 3) second) [1 2 3 4]))
+(= 5 ((comp_ (partial + 3) second) [1 2 3 4]))
 
-(= true ((comp zero? #(mod % 8) +) 3 5 7 9))
+(= true ((comp_ zero? #(mod % 8) +) 3 5 7 9))
 
-(= "HELLO" ((comp #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
+(= "HELLO" ((comp_ #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
 
-
+;; Ejemplo de higher-order-function
 (defn adder [saludo]
   (fn [nombre] (str saludo " " nombre)))
 
 ((adder "hola") "Espe")
 
 
-
-(defn comp_ [& f]
+;; mi solución
+(defn comp_ [& fs]
   (fn [& args]
-
-      (apply (first f) args)
-
-    ))
+    (let [rfs (reverse fs)
+          args (apply (first rfs) args)]
+      (loop [result args
+             f (next rfs)]
+        (if f
+          (recur ((first f) result)(next f))
+          result)))))
 
 ((comp_ rest reverse) [1 2 3 4])
-((comp_ zero? #(mod % 8) +) 3 5 7 9)
+
+;; Otras soluciones
+(defn comp-1 [& fs]
+  (fn [& xs]
+    (first (reduce #(vector (apply %2 %1)) xs (reverse fs)))))
 
 
+;; A higher-order function is:
+;;    a function that takes one or more functions as arguments
+;;    or
+;;    a function that returns a function
+
+;; Esta función es del caso dos. Una función que devuelve una función
+
+;; Esto es una higher-order-function de "tres grados": es decir una función (reduce),
+;; que devuelve una función (UNO) que devuelve una función (DOS).
+
+;; fs son las funciones que queremos componer
+;; reduce aplica la función UNO sobre la lista de funciones fs que queremos componer
+;; primero aplica f a g, es decir la primera función de la lista a la segunda y
+;; crea una función temporal resultado de la composición de estas dos funciones
+;; luego aplica esa función temporal a la siguiente función en la lista hasta que
+;; no hay más funciones
+;; Esta función UNO devuelve una función DOS que toma como argumentos los elementos
+;; sobre los que queremos aplicar la composición de funciones.
+;; Cuando se aplica (f (apply g args)) por primera vez, g es la última función de fs
+;; y f es una composición de encadenada de las funciones anteriores que de van
+;; aplicando en el orden inverso al que se han ido componiendo
 
 
+(defn comp-2 [& fs] (reduce
+                     (fn UNO [f g]
+                        (fn DOS [& args]
+                           (f (apply g args))))
+                     fs))
+
+(defn comp-2 [& fs] (reduce
+                     (fn UNO [f g]
+                       (do
+                        (println "f1" f)
+                        (println "g1" g)
+                        (fn DOS [& args]
+                         (do
+                           (println "f2" f)
+                           (println "g2" g)
+                           (println "a" args)
+                           (f (apply g args))))))
+                     fs))
 
 
+((comp-2 false? zero? (fn MODU [x] (mod x 8)) +) 3 5 7 9)
 
 
-;; primera solución encontrada usando loop y recur. Pero estoy segura que hay alguna más escueta.
-(defn comp_ [& r]
-  (fn [coll] (loop [result coll
-                    r r]
-               (if r
-                 (recur ((last r) result) (butlast r))
-                 result))))
-
-
-(defn compvariadic [& r]
-  (fn
-    ([a] (loop [arguments a
-                    r r]
-               (if r
-                 (do (println "1" arguments) (recur ((last r) arguments) (butlast r)))
-                 arguments)))
-     ([a b] (loop [arguments [a b]
-                    r r]
-               (if r
-                 (do (println "2" arguments) (recur ((last r) arguments) (butlast r)))
-                 arguments)))
-    ([a b & more] (loop [arguments [a b more]
-                    r r]
-               (if r
-                (do (println "3" arguments)(recur ((last r) arguments) (butlast r)))
-                 arguments)))
-    ))
-
-
-(defn comp2 [& r]
-  (fn
-    ([& more] (loop [arguments [more]
-                    r r]
-               (if r
-                (do (println arguments)(recur ((last r) arguments) (butlast r)))
-                 arguments)))
-    ))
-
-
-
-
-
-
-
-
-
-
-
-(defn suma [& more]
-  (reduce + more)
-  )
-
-(suma 2 5 6)
-
-
-
-
-  ([x y & more]
-     (reduce1 + (+ x y) more))
-
-
-
-
-
-
-(defn res [& s] s)
-(res [1 2 3 4])
-(res 1 2 3 4)
-
-
-
-(apply reverse (res [1 2 3 4]))
-(apply rest (apply reverse (res [1 2 3 4])))
-
-
-
-(= "HELLO" ((comp_ #(.toUpperCase %) #(apply str %) take) 5 "hello world"))
-
-(= true ((__ zero? #(mod % 8) +) 3 5 7 9))
-
-
-((comp zero? #(mod % 8) +) 3 5 7 9)
-
-( #(mod % 8) (+ 3 5 7 9))
-
-
-
-(defn f [a o b & c]
-  (if c
-    (apply f (o a b) c)
-    (o a b)))
-
-
-(defn sum
-  ([vals] (sum vals 0)) ;; ~~~1~~~
-  ([vals accumulating-total]
-     (if (empty? vals) ;; ~~~2~~~
-       accumulating-total
-       (sum (rest vals) (+ (first vals) accumulating-total)))))
-
-
-
-(defn gcdvar2 [& numbers]
-  (let [gcd (fn gcd2 [x y] (if (= y 0)
-                             x
-                            (gcd2 y (rem x y))))]
-    (reduce gcd numbers)))
-
-(gcdvar2 8 24 28)
-
-
-
-(defn lcmprueba [& numbers]
-   (when (seq numbers)
-   (println (first numbers))
-   (recur (rest numbers))))
-
-
-(defn binary-to-decimal [x] (int (reduce +
-                                    (map #(* % (Math/pow 2 %2))
-                                         (->> x (map str) (map #(Integer/parseInt %)) reverse)
-                                         (range(count x))))))
 
 
 
@@ -1224,5 +1158,77 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
       (and (counted? e)
            (= 3 (count e))
            (every? tree? (next e)))))
+
+;; #59 Juxtaposition
+;; Take a set of functions and return a new function that takes a variable number of arguments
+;; and returns a sequence containing the result of applying each function left-to-right to the argument list.
+
+(= [21 6 1] ((juxt_ + max min) 2 3 5 1 6 4))
+
+(= ["HELLO" 5] ((juxt_ #(.toUpperCase %) count) "hello"))
+
+(= [2 6 4] ((juxt_ :a :c :b) {:a 2, :b 4, :c 6, :d 8 :e 10}))
+
+
+(defn juxt_ [& fs]
+  (fn [& args]
+    (vec (for [f fs]
+      (apply f args)))
+    )
+  )
+
+((juxt_ + max min) 2 3 5 1 6 4)
+
+;; otras soluciones
+
+
+(defn juxt-1 [& f]
+  (fn [& a]
+    (map #(apply % a) f)))
+
+((juxt-1 + max min) 2 3 5 1 6 4)
+
+
+(fn [& fs]
+  (fn [& args]
+    (reduce #(conj %1 (apply %2 args) ) [] fs)))
+
+;; #70 Word Sorting
+;; Write a function that splits a sentence up into a sorted list of words.
+;; Capitalization should not affect sort order and punctuation should be ignored.
+
+(= (sorting  "Have a nice day.")
+   ["a" "day" "Have" "nice"])
+
+(= (sorting  "Clojure is a fun language!")
+   ["a" "Clojure" "fun" "is" "language"])
+
+(= (sorting  "Fools fall for foolish follies.")
+   ["fall" "follies" "foolish" "Fools" "for"])
+
+
+(defn sorting [x] (sort-by #(.toUpperCase %) (#(re-seq #"\w+" %) x)))
+
+;; Otra solución. Es la misma pero usando el thread macro
+
+#( ->> % (re-seq #"\w+") (sort-by clojure.string/lower-case))
+
+;; #74 Filter Perfect Squares
+
+;; Given a string of comma separated integers, write a function which
+;; returns a new comma separated string that only contains the numbers which are perfect squares.
+
+(= (__ "4,5,6,7,8,9") "4,9")
+
+(= (__ "15,16,25,36,37") "16,25,36")
+
+
+
+(ratio? (rationalize (Math/sqrt 9)))
+
+(map read-string (re-seq #"\d" "4,5,6,7,8,9"))
+
+
+
 
 
