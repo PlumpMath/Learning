@@ -203,6 +203,7 @@ maparesultados
        )))
 (factorial 6)
 
+
 ;; Otras soluciones
 (#(reduce * % (next (range %))) 5)
 
@@ -574,7 +575,8 @@ maparesultados
 ; tampoco hace nada de Integer/parseInt, lo soluciona con un condicional if
 (fn [s]
   (reduce + 0
-    (map-indexed (fn [i x]
+
+          (map-indexed (fn [i x]
       (if (= \1 x)
         (Math/pow 2 i)
         0))
@@ -1046,7 +1048,7 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 (= (part 3 (range 8)) '((0 1 2) (3 4 5)))
 
 
-;; #67 Prime numbers SIN RESOLVERRRR
+;; #67 Prime numbers SIN RESOLVERRRR *********************************************************************
 ;; Write a function which returns the first x number of prime numbers.
 
 
@@ -1113,14 +1115,14 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 
 
 
-;; #29 Get the Caps
+;; #29 Get the Caps *********************************************************************
 
 ;; Write a function which takes a string and returns a new string containing only the capital letters.
 
 
 (#(apply str (re-seq #"[A-Z]" %)) "HeLlO, WoRlD!")
 
-;; #95 To Tree, or not to Tree
+;; #95 To Tree, or not to Tree *********************************************************************
 ;; Write a predicate which checks whether or not a given sequence represents a binary tree.
 ;; Each node in the tree must have a value, a left child, and a right child.
 
@@ -1159,7 +1161,7 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
            (= 3 (count e))
            (every? tree? (next e)))))
 
-;; #59 Juxtaposition
+;; #59 Juxtaposition *********************************************************************
 ;; Take a set of functions and return a new function that takes a variable number of arguments
 ;; and returns a sequence containing the result of applying each function left-to-right to the argument list.
 
@@ -1193,7 +1195,7 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
   (fn [& args]
     (reduce #(conj %1 (apply %2 args) ) [] fs)))
 
-;; #70 Word Sorting
+;; #70 Word Sorting *********************************************************************
 ;; Write a function that splits a sentence up into a sorted list of words.
 ;; Capitalization should not affect sort order and punctuation should be ignored.
 
@@ -1213,20 +1215,298 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 
 #( ->> % (re-seq #"\w+") (sort-by clojure.string/lower-case))
 
-;; #74 Filter Perfect Squares
+;; #74 Filter Perfect Squares *********************************************************************
 
 ;; Given a string of comma separated integers, write a function which
 ;; returns a new comma separated string that only contains the numbers which are perfect squares.
 
-(= (__ "4,5,6,7,8,9") "4,9")
+(= (fps "4,5,6,7,8,9") "4,9")
 
-(= (__ "15,16,25,36,37") "16,25,36")
+(= (fps "15,16,25,36,37") "16,25,36")
+
+
+((complement #(ratio? (rationalize (Math/sqrt %)))) 9)
+(map read-string (re-seq #"\d+" "15,16,25,36,37"))
+
+(defn fps [x] (let [sqrs (filter (complement #(ratio? (rationalize (Math/sqrt %)))) (map read-string (re-seq #"\d+" x)))]
+
+               (apply str (butlast (interleave sqrs (repeat (count sqrs) \,))))))
+
+;; otras soluciones
+
+(fn [s] (clojure.string/join ","
+  (filter #(= 0.0 (mod (Math/sqrt %) 1))
+    (read-string (str "[" s "]")) )) )
+
+;; importante:
+(clojure.string/join "," [1 2 3])
+
+
+;; #80 Perfect Numbers *********************************************************************
+
+;; A number is "perfect" if the sum of its divisors equal the number itself. 6 is a perfect
+;; number because 1+2+3=6. Write a function which returns true for perfect numbers and false otherwise.
+
+(= (perfect 6) true)
+(= (perfect 7) false)
+(= (perfect 496) true)
+(= (perfect 500) false)
+(= (perfect 8128) true)
+
+(defn perfect [x]  (if (= x (reduce + (rest (filter #(= 0 (mod % 1)) (map #(/ x %) (range 1 (inc x))))))) true false))
+
+;; otras soluciones
+
+(fn [n]
+  (= n (apply + (filter #(= 0 (mod n %)) (range 1 n)))))
+
+;; #77 Anagram Finder *********************************************************************
+
+;; Write a function which finds all the anagrams in a vector of words. A word x is an anagram of
+;; word y if all the letters in x can be rearranged in a different order to form y. Your function
+;; should return a set of sets, where each sub-set is a group of words which are anagrams of each other.
+;; Each sub-set should have at least two words. Words without any anagrams should not be included in the result.
+
+(= (anagram ["meat" "mat" "team" "mate" "eat"])
+   #{#{"meat" "team" "mate"}})
+
+(= (anagram ["veer" "lake" "item" "kale" "mite" "ever"])
+   #{#{"veer" "ever"} #{"lake" "kale"} #{"mite" "item"}})
+
+
+(defn anagram [x] (into #{} (map set (filter #(> (count %) 1) (vals (group-by sort x))))))
+
+
+;; #102 intoCamelCase *********************************************************************
+
+;; When working with java, you often need to create an object with fieldsLikeThis, but you'd rather
+;; work with a hashmap that has :keys-like-this until it's time to convert. Write a function which
+;; takes lower-case hyphen-separated strings and converts them to camel-case strings.
+
+(= (intoCamelCase "something") "something")
+
+(= (intoCamelCase "multi-word-key") "multiWordKey")
+
+(= (intoCamelCase "leaveMeAlone") "leaveMeAlone")
+
+
+(defn intoCamelCase [x]
+  (let [w (re-seq #"\w+" x)]
+    (apply str (first w) (map #(clojure.string/capitalize %) (next w)))))
+
+
+;; otras soluciones
+
+(fn [s] (clojure.string/replace s #"-(\w)" #(str (.toUpperCase (% 1)))))
+
+
+;; #60 Sequence Reductions ********************************************************************* SIN RESOLVER
+
+;; Write a function which behaves like reduce, but returns each intermediate value of the reduction.
+;; Your function must accept either two or three arguments, and the return sequence must be lazy.
+
+;; Special Restrictions: reductions
+
+(= (take 5 (reduction + (range))) [0 1 3 6 10])
+
+(= (reduction conj [1] [2 3 4]) [[1] [1 2] [1 2 3] [1 2 3 4]])
+
+(= (last (reduction * 2 [3 4 5])) (reduce * 2 [3 4 5]) 120)
+
+
+(reductions + '(1 2 3))
+
+(reduce + '(1 2 3))
+
+
+(defn reduction
+  ([f coll] (r f (first coll) coll))
+  ([f v coll]
+   (lazy-seq
+    (loop [res [v]
+           s   coll]
+      (if s
+        (recur (do (println res s) (conj res (f (last res) (first s)))) (next s))
+        res)))))
+
+
+(reduce * (range 1 5))
+
+(r * 2 [3 4 5])
+
+
+(defn factorial [x] (
+     loop [cnt x acc 1]
+     (if (zero? cnt)
+       acc
+       (recur (dec cnt) (* cnt acc))
+       )))
+
+
+(if (next []) true false)
+(rest [])
+
+(* 1 (last []))
+
+
+(conj [(first [0 1 2])] (second [0 1 2]))
+
+
+(cons 1 [1 2 3])
+
+;; #69 Merge with a Function *********************************************************************
+;; Write a function which takes a function f and a variable number of maps.
+;; Your function should return a map that consists of the rest of the maps conj-ed
+;; onto the first. If a key occurs in more than one map, the mapping(s) from the
+;; latter (left-to-right) should be combined with the mapping in the result by
+;; calling (f val-in-result val-in-latter)
+
+;; Special Restrictions: merge-with
+
+(= (mergew * {:a 2, :b 3, :c 4} {:a 2} {:b 2} {:c 5})
+   {:a 4, :b 6, :c 20})
+
+(= (mergew - {1 10, 2 20} {1 3, 2 10, 3 15})
+   {1 7, 2 10, 3 15})
+
+(= (mergew concat {:a [3], :b [6]} {:a [4 5], :c [8 9]} {:b [7]})
+   {:a [3 4 5], :b [6 7], :c [8 9]})
+
+(defn mergew [f m & maps]
+  (let [s (mapcat seq maps)]
+    (reduce #(if (contains? % (first %2))
+               (update-in % [(first %2)] f (second %2))
+               (assoc % (first %2) (second %2))) m s)))
+
+;; #86 Happy numbers *********************************************************************
+;; Happy numbers are positive integers that follow a particular formula: take each
+;; individual digit, square it, and then sum the squares to get a new number. Repeat
+;; with the new number and eventually, you might get to a number whose squared sum is 1.
+;; This is a happy number. An unhappy number (or sad number) is one that loops endlessly.
+;; Write a function that determines if a number is happy or not.
+
+(= (happy? 7) true)
+
+(= (happy? 986543210) true)
+
+(= (happy? 2) false)
+
+(= (happy? 4) false)
+
+(defn happy?
+  ([n] (happy? n 0))
+  ([n c]
+   (let [h (reduce + (map #(* % %) (read-string (str "[" (clojure.string/join " " (str n)) "]"))))]
+  (if (= n h)
+    true
+    (if (> c 8)
+     false
+     (happy? h (inc c)))))))
+
+
+;; #115 The Balance of N *********************************************************************
+;; A balanced number is one whose component digits have the same sum on the left and right
+;; halves of the number. Write a function which accepts an integer n, and returns true iff n is balanced.
+
+(= true (balanced? 11))
+
+(= true (balanced? 121))
+
+(= false (balanced? 123))
+
+(= true (balanced? 0))
+
+(= false (balanced? 88099))
+
+(= true (balanced? 89098))
+
+(= true (balanced? 89089))
+
+(= (take 20 (filter balanced? (range)))
+   [0 1 2 3 4 5 6 7 8 9 11 22 33 44 55 66 77 88 99 101])
+
+
+ (defn balanced? [n]
+   (let [s (->> n
+            (str)
+            (map #(- (int %) (int \0))))
+         p (-> s
+               count
+               (/ 2)
+               int)]
+     (= (reduce + (take p s)) (reduce + (take-last p s)))))
+
+;; #137 Digits and bases
+
+;; Write a function which returns a sequence of digits of a non-negative number
+;; (first argument) in numerical system with an arbitrary base (second argument).
+;; Digits should be represented with their integer values, e.g. 15 would be [1 5]
+;; in base 10, [1 1 1 1] in base 2 and [15] in base 16.
+
+(= [1 2 3 4 5 0 1] (__ 1234501 10))
+
+(= [0] (__ 0 11))
+
+(= [1 0 0 1] (__ 9 2))
+
+(= [1 0] (let [n (rand-int 100000)](__ n n)))
+
+(= [16 18 5 24 15 1] (__ Integer/MAX_VALUE 42))
 
 
 
-(ratio? (rationalize (Math/sqrt 9)))
+;; Integer/MAX_VALUE es el mayor número que puede ser considerado como interger: 2147483647
+Integer/MAX_VALUE
 
-(map read-string (re-seq #"\d" "4,5,6,7,8,9"))
+(class Integer/MAX_VALUE)
+(class 2147483647)
+
+;; No entiendo por qué si pregunto la clase de Integer/MAX_VALUE me dice que es
+;; integer y si pregunto la de su valor (2147483647) me dice que es Long
+;; Parece que clojure decide que es long si yo no le obligo a que sea int.
+
+(int 2147483647) ;; puedo hacer coerce a integer
+(int 2147483648) ;; aquí no me deja
+
+
+(Integer/toString 1234501 10)
+
+;; Con Integer/toString estamos accediendo directamente a un método de Java que toma
+;; un integer y un radix (base)
+;; public static String toString(int i, int radix)
+;; If the radix is smaller than Character.MIN_RADIX or larger than Character.MAX_RADIX,
+;; then the radix 10 is used instead.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
