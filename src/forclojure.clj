@@ -1436,25 +1436,45 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
                int)]
      (= (reduce + (take p s)) (reduce + (take-last p s)))))
 
-;; #137 Digits and bases
+;; #137 Digits and bases *********************************************************************
 
 ;; Write a function which returns a sequence of digits of a non-negative number
 ;; (first argument) in numerical system with an arbitrary base (second argument).
 ;; Digits should be represented with their integer values, e.g. 15 would be [1 5]
 ;; in base 10, [1 1 1 1] in base 2 and [15] in base 16.
 
-(= [1 2 3 4 5 0 1] (__ 1234501 10))
+(= [1 2 3 4 5 0 1] (digits 1234501 10))
 
-(= [0] (__ 0 11))
+(= [0] (digits 0 11))
 
-(= [1 0 0 1] (__ 9 2))
+(= [1 0 0 1] (digits 9 2))
 
-(= [1 0] (let [n (rand-int 100000)](__ n n)))
+(= [1 0] (let [n (rand-int 100000)](digits n n)))
 
-(= [16 18 5 24 15 1] (__ Integer/MAX_VALUE 42))
+(= [16 18 5 24 15 1] (digits Integer/MAX_VALUE 42))
+
+(defn digits [number base]
+  (if (= number 0)
+      [0]
+      (let [ch (concat (map char (range 48 58)) (map char (range 65 91)))
+            dig (zipmap ch (range))]
+        (loop [num number
+               acc []]
+          (if (zero? num)
+              (map #(dig %) (reverse acc))
+              (recur (int (/ num base))
+                     (conj acc (nth ch (mod num base)))))))))
 
 
+;; Otras soluciones en forclojure
 
+;; Esta es obra maestra! Es recursiva en vez de usar loop... of course!!!
+(fn base [x b] (if (< x b) [x] (conj (base (quot x b) b) (mod x b))))
+
+;; Primer predicado del if : [x]
+;; Si el número es menor que la base, el número en esa base es directamente él mismo
+
+;;mi proceso:
 ;; Integer/MAX_VALUE es el mayor número que puede ser considerado como interger: 2147483647
 Integer/MAX_VALUE
 
@@ -1476,29 +1496,221 @@ Integer/MAX_VALUE
 ;; public static String toString(int i, int radix)
 ;; If the radix is smaller than Character.MIN_RADIX or larger than Character.MAX_RADIX,
 ;; then the radix 10 is used instead.
+;; Character.MAX_RADIX es igual a 36 (los números del 0 al 9 más las letras del abecedario)
+
+Character/MAX_RADIX
+(count "0123456789abcdefghijklmnopqrstuvwxyz")
+
+;; Por eso pasa esto:
+(= (Integer/toString Integer/MAX_VALUE 10) (Integer/toString Integer/MAX_VALUE 42))
+
+;; Los caracteres que se pueden utilizar son 0123456789abcdefghijklmnopqrstuvwxyz
+;; These are '\u0030' through '\u0039' and '\u0061' through '\u007A'.
+;; De forma que si el radix es 16, los caracteres usados son 0123456789abcdef.
+
+;; No sé cómo solucionar la limitación de Character/MAX_RADIX
+
+(Integer/decode "0xf")
 
 
 
+;; He encontrado esto en internet que hace lo mismo pero de forma "artesanal"
+(def characters
+  (concat (map char (range 48 58)) (map char (range 65 91))))
+
+characters
+
+(def conversion-table
+  (zipmap
+   characters
+   (range)))
+
+(into (sorted-map) conversion-table)
+
+(defn base-n-to-base-10
+  [^String string ^Integer base]
+  (let [string (clojure.string/upper-case string)]
+    (assert (every? #(< (conversion-table %) base) string))
+    (loop [num string
+           acc 0]
+      (if (seq num)
+        (recur (drop 1 num) (+ (* base acc) (get conversion-table (first num))))
+acc))))
+
+(defn base-10-to-base-n
+  [^Integer number ^Integer base]
+  (loop [num number
+         acc []]
+    (if (zero? num)
+      (clojure.string/join (reverse acc))
+      (recur (int (/ num base))
+             (conj acc (nth characters (mod num base)))))))
+
+(base-10-to-base-n Integer/MAX_VALUE 42)
+
+;; #158 Decurry *********************************************************************
+;; Write a function that accepts a curried function of unknown arity n.
+;; Return an equivalent function of n arguments. You may wish to read this.
+
+(= 10 ((curry (fn [a]
+             (fn [b]
+               (fn [c]
+                 (fn [d]
+                   (+ a b c d))))))
+       1 2 3 4))
+
+(= 24 ((curry (fn [a]
+             (fn [b]
+               (fn [c]
+                 (fn [d]
+                   (* a b c d))))))
+       1 2 3 4))
+
+(= 25 ((curry (fn [a]
+                (fn [b]
+                  (* a b))))
+       5 5))
+
+;; mi solución
+(defn curry [fun]
+  (fn [& args]
+   (loop [f fun
+          a args]
+    (if a
+      (recur (f (first a))(next a))
+      f))))
+
+;; otras soluciones
+(defn curry [f]
+  (fn [& args]
+    (reduce #(% %2) f args)
+    ))
+
+;; #144 Oscilrate *********************************************************************
+
+;; Write an oscillating iterate: a function that takes an initial value and
+;; a variable number of functions. It should return a lazy sequence of the
+;; functions applied to the value in order, restarting from the first function
+;; after it hits the end.
+
+(= (take 3 (oscilate 3.14 int double)) [3.14 3 3.0])
+
+(= (take 5 (oscilate 3 #(- % 3) #(+ 5 %))) [3 0 5 2 7])
+
+(= (take 12 (oscilate 0 inc dec inc dec inc)) [0 1 0 1 0 1 2 1 2 1 2 3])
+
+(defn oscilate [n & fns]
+  (lazy-seq  (reductions #(%2 %) n (cycle fns))  )
+  )
+
+;; #76 Intro to Trampoline *********************************************************************
+;; The trampoline function takes a function f and a variable number of parameters.
+;; Trampoline calls f with any parameters that were supplied. If f returns a function,
+;; trampoline calls that function with no arguments. This is repeated, until the return
+;; value is not a function, and then trampoline returns that non-function value. This is
+;; useful for implementing mutually recursive algorithms in a way that won't consume the stack.
+
+(= [1 3 5 7 9 11]
+   (letfn
+     [(foo [x y] #(bar (conj x y) y))
+      (bar [x y] (if (> (last x) 10)
+                   x
+                   #(foo x (+ 2 y))))]
+     (trampoline foo [] 1)))
 
 
+(defn foo [x]
+   (if (< x 0)
+     (println "done")
+     #(foo (do (println :x x) (dec x)))))
+
+((((((((((((foo 10))))))))))))
+(trampoline foo 10)
+
+;; #85 Power Set *********************************************************************
+;; Write a function which generates the power set of a given set.
+;; The power set of a set x is the set of all subsets of x, including the empty set and x itself.
+(= (powerset #{1 :a}) #{#{1 :a} #{:a} #{} #{1}})
+(= (powerset #{}) #{#{}})
+(= (powerset #{1 2 3})
+   #{#{} #{1} #{2} #{3} #{1 2} #{1 3} #{2 3} #{1 2 3}})
+(= (count (powerset (into #{} (range 10)))) 1024)
+
+(defn powerset [s]
+  (reduce (fn [p x] (set (concat p (map #(conj % x)  p)))) #{#{}} s))
+
+;; #78 Reimplement trampoline *********************************************************************
+;; Special Restrictions: trampoline
+
+(= (letfn [(triple [x] #(sub-two (* 3 x)))
+          (sub-two [x] #(stop?(- x 2)))
+          (stop? [x] (if (> x 50) x #(triple x)))]
+    (trampolin triple 2))
+  82)
+
+(= (letfn [(my-even? [x] (if (zero? x) true #(my-odd? (dec x))))
+          (my-odd? [x] (if (zero? x) false #(my-even? (dec x))))]
+    (map (partial trampolin my-even?) (range 6)))
+  [true false true false true false])
+
+(defn trampolin [fun & args]
+  (let [f (apply fun args)]
+    (if (fn? f) (trampolin f) f)))
+;; Pensaba al principio que en la segunda iteración, cuando no hay argumentos, apply me iba a dar
+;; problemas porque necesita dos argumentos. No hay problema porque cuando se aplica (tranpolin f)
+;; sin argumentos, args es nil, y (apply f nil) no da problemas. Por ejemplo:
+(apply + nil)
+
+;; #98 Equivalence Classes *********************************************************************
+;; A function f defined on a domain D induces an equivalence relation on D, as follows:
+;; a is equivalent to b with respect to f if and only if (f a) is equal to (f b).
+;; Write a function with arguments f and D that computes the equivalence classes of D with respect to f.
+
+(= (eq #(* % %) #{-2 -1 0 1 2})
+   #{#{0} #{1 -1} #{2 -2}})
+(= (eq #(rem % 3) #{0 1 2 3 4 5 })
+   #{#{0 3} #{1 4} #{2 5}})
+(= (eq identity #{0 1 2 3 4})
+   #{#{0} #{1} #{2} #{3} #{4}})
+(= (eq (constantly true) #{0 1 2 3 4})
+   #{#{0 1 2 3 4}})
+
+(defn eq [f s]
+  (->> s
+       (group-by f)
+       (vals)
+       (map set)
+       (set)))
+
+;; #105 Identify keys and values *********************************************************************
+;; Given an input sequence of keywords and numbers, create a map such that each key in
+;;the map is a keyword, and the value is a sequence of all the numbers (if any) between
+;; it and the next keyword in the sequence.
+
+(= {} (__ []))
+(= {:a [1]} (__ [:a 1]))
+(= {:a [1], :b [2]} (__ [:a 1, :b 2]))
+(= {:a [1 2 3], :b [], :c [4]} (kv [:a 1 2 3 :b :c 4]))
+
+(defn kv [s]
+  (reduce #(if (keyword? %2) (assoc % %2 []) (conj (val (last %)) %2)  ) (array-map) s)
+
+  )
+
+(kv [:a 1 2 3 :b :c 4])
 
 
+ (reduce
+  #(if
+     (keyword? %2)
+     (assoc % %2 [])
+     (conj
+      (second
+       (last %)) %2))
+  (array-map) [:a 1 2 3 :b :c 4])
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(conj (conj (second (last (assoc (array-map) :a []))) 1) 2)
 
 
 
