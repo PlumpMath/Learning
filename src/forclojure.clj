@@ -1047,74 +1047,6 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 
 (= (part 3 (range 8)) '((0 1 2) (3 4 5)))
 
-
-;; #67 Prime numbers SIN RESOLVERRRR *********************************************************************
-;; Write a function which returns the first x number of prime numbers.
-
-
-(= (__ 5) [2 3 5 7 11])
-(= (last (__ 100)) 541)
-
-
-(defn nprimo [a b]
-(reduce #(if (loop [den (dec %2)]
-               (if (zero? (rem %2 den))
-                 (if (= den 1)
-                   true
-                   false)
-                 (recur (dec den)))) (conj % %2)) a b))
-
-
-
-(defn nprimo [coll]
- (reduce #(if (loop [den (dec %2)]
-               (if (zero? (rem %2 den))
-                 (if (= den 1)
-                   true
-                   false)
-                 (recur (dec den)))) (do (println % %2) (conj % %2))) [] coll))
-
-
-(#(loop [den (dec %)]
-               (if (zero? (rem % den))
-                 (if (= den 1)
-                   true
-                   false)
-                 (recur (dec den)))) 2)
-
-(reduce #(conj % %2) [] [1 2 3])
-
-
-%2 --> 1
-(dec 1)
-(rem 1 0)
-
-
-(nprimo [2 3 4 5 6 7 8 9 10])
-
-
-(defn primo? [x]
-  (loop [den (dec x)]
-    (if (zero? (rem x den))
-      (if (= den 1)
-        true
-        false)
-      (recur (dec den)))))
-
-
-(primo? 3)
-(primo? 0)
-
-(defn _map
-  [f x]
-     (reduce #(conj %1 (f %2)) [] x))
-
-
-
-(primo? 8)
-
-
-
 ;; #29 Get the Caps *********************************************************************
 
 ;; Write a function which takes a string and returns a new string containing only the capital letters.
@@ -1300,59 +1232,36 @@ reduce #(update-in % [%2] (fnil inc 0)) {}
 (fn [s] (clojure.string/replace s #"-(\w)" #(str (.toUpperCase (% 1)))))
 
 
-;; #60 Sequence Reductions ********************************************************************* SIN RESOLVER
+;; #60 Sequence Reductions *********************************************************************
 
 ;; Write a function which behaves like reduce, but returns each intermediate value of the reduction.
 ;; Your function must accept either two or three arguments, and the return sequence must be lazy.
 
 ;; Special Restrictions: reductions
 
-(= (take 5 (reduction + (range))) [0 1 3 6 10])
+(= (take 5 (reduction-2 + (range))) [0 1 3 6 10])
 
-(= (reduction conj [1] [2 3 4]) [[1] [1 2] [1 2 3] [1 2 3 4]])
+(= (reduction-2 conj [1] [2 3 4]) [[1] [1 2] [1 2 3] [1 2 3 4]])
 
-(= (last (reduction * 2 [3 4 5])) (reduce * 2 [3 4 5]) 120)
+(= (last (reduction-2 * 2 [3 4 5])) (reduce * 2 [3 4 5]) 120)
 
-
-(reductions + '(1 2 3))
-
-(reduce + '(1 2 3))
-
+;; Primera solución. No es válida porque por mucho que le ponga lazy-seq delante
+;; no es lazy.
 
 (defn reduction
-  ([f coll] (r f (first coll) coll))
-  ([f v coll]
-   (lazy-seq
-    (loop [res [v]
-           s   coll]
-      (if s
-        (recur (do (println res s) (conj res (f (last res) (first s)))) (next s))
-        res)))))
+  ([f coll] (reduction f (first coll) (next coll)))
+  ([f i coll] (lazy-seq (reduce #(conj % (f (last %) %2)) [i] coll))))
+
+;; En vez de reduce tengo que usar una función recursiva
+(defn reduction-2
+  ([f coll] (reduction-2 f (first coll) (next coll)))
+  ([f i coll]
+  (concat [i]
+   (when-let [s coll]
+     (lazy-seq (reduction-2 f (f i (first s)) (next s)))
+      ))))
 
 
-(reduce * (range 1 5))
-
-(r * 2 [3 4 5])
-
-
-(defn factorial [x] (
-     loop [cnt x acc 1]
-     (if (zero? cnt)
-       acc
-       (recur (dec cnt) (* cnt acc))
-       )))
-
-
-(if (next []) true false)
-(rest [])
-
-(* 1 (last []))
-
-
-(conj [(first [0 1 2])] (second [0 1 2]))
-
-
-(cons 1 [1 2 3])
 
 ;; #69 Merge with a Function *********************************************************************
 ;; Write a function which takes a function f and a variable number of maps.
@@ -1687,37 +1596,105 @@ acc))))
 ;;the map is a keyword, and the value is a sequence of all the numbers (if any) between
 ;; it and the next keyword in the sequence.
 
-(= {} (__ []))
-(= {:a [1]} (__ [:a 1]))
-(= {:a [1], :b [2]} (__ [:a 1, :b 2]))
+(= {} (kv []))
+(= {:a [1]} (kv [:a 1]))
+(= {:a [1], :b [2]} (kv [:a 1, :b 2]))
 (= {:a [1 2 3], :b [], :c [4]} (kv [:a 1 2 3 :b :c 4]))
 
+;; primera solución. Me funciona aquí, pero no en la página.
 (defn kv [s]
-  (reduce #(if (keyword? %2) (assoc % %2 []) (conj (val (last %)) %2)  ) (array-map) s)
+    (reduce #(if (keyword? %2)
+                 (assoc % %2 [])
+                 (update-in
+                  %
+                  [(first (last %))]
+                  (fn [x] (conj x %2) ))) (array-map) s))
 
-  )
+;; Se supone que usando un array-map, en vez de un hash-map, mantenemos
+;; las inserciones en el mapa en orden. Por lo tanto, no debería importar
+;; si los keywords que nos dan en la sequencia están ordenados o no.
+;; El problema es que en la página de 4clojure no me funiona esta solución.
+;; He cambiado array-map por sorted-map y sí se lo ha tragado, pero eso es
+;; porque da la casualidad de que nos dan todos los keywords ordenados.
 
-(kv [:a 1 2 3 :b :c 4])
+(def a (sorted-map))
+(last (assoc (assoc (assoc a :c 1) :b 2) :a 8))
+
+(def b (hash-map)) ;; No garantiza que last sea [:b 8]
+(last (assoc (assoc (assoc b :c 1) :a 2) :b 8))
+
+(def c (array-map)) ;; Debería garantizar que last sea [:c 8]
+(last (assoc (assoc (assoc c :b 1) :a 2) :c 8))
+
+;; Hay otro acercamiento que es trabajar de la misma forma pero con un vector
+;; y meterlo todo en un mapa al final:
+
+(fn [v]
+  (into {} (reduce
+    #(if (keyword? %2)
+	     (conj % [%2 []] )
+		 (conj (pop %) [(-> % peek first) (conj (-> % peek peek) %2)]))  [] v)))
+
+;; #147 Pascal's Trapezoid *********************************************************************
+;; Write a function that, for any given input vector of numbers, returns an infinite
+;; lazy sequence of vectors, where each next one is constructed from the previous
+;; following the rules used in Pascal's Triangle. For example, for [3 1 2], the next
+;; row is [3 4 3 2].
+;; Beware of arithmetic overflow! In clojure (since version 1.3 in 2011), if you use
+;; an arithmetic operator like + and the result is too large to fit into a 64-bit integer,
+;; an exception is thrown. You can use +' to indicate that you would rather overflow into
+;; Clojure's slower, arbitrary-precision bigint.
+
+(= (second (pascal [2 3 2])) [2 5 5 2])
+(= (take 5 (pascal [1])) [[1] [1 1] [1 2 1] [1 3 3 1] [1 4 6 4 1]])
+(= (take 2 (pascal [3 1 2])) [[3 1 2] [3 4 3 2]])
+(= (take 100 (pascal [2 4 2])) (rest (take 101 (pascal [2 2]))))
 
 
- (reduce
-  #(if
-     (keyword? %2)
-     (assoc % %2 [])
-     (conj
-      (second
-       (last %)) %2))
-  (array-map) [:a 1 2 3 :b :c 4])
+(defn pascal [v]
+   (iterate (fn [x] (map #(apply +' %) (partition 2 1 (cons 0 (conj (vec x) 0))))) v))
+
+(take 10 (pascal [1]))
+
+;; #67 Prime Numbers *********************************************************************
+;; Write a function which returns the first x number of prime numbers.
+(= (n-primes 2) [2 3])
+(= (n-primes 5) [2 3 5 7 11])
+(= (last (n-primes 100)) 541)
 
 
-(conj (conj (second (last (assoc (array-map) :a []))) 1) 2)
+(defn n-primes [n]
+  (take n
+      (filter #(loop [den (dec %)]
+                  (if (zero? (rem % den))
+                      (= den 1)
+                      (recur (dec den)))) (nnext (range)))))
+
+;; Otra solución más bonita
+(fn [n]
+  (->>
+  (range)
+  (drop 2)
+  (filter (fn [x] (every? #(< 0 (mod x %)) (range 2 x))))
+  (take n)))
+;; Para comprobar si un número es primo lo que hace es comprobar #(< 0 (mod x %))
+;; para todos los números que hay por debajo de él hasta el 2 (range 2 x)
+
+;; #53 Longest Increasing Sub-Seq
+;; Given a vector of integers, find the longest consecutive sub-sequence of
+;;increasing numbers. If two sub-sequences have the same length, use the one that occurs first.
+;; An increasing sub-sequence must have a length of 2 or greater to qualify.
+
+(= (__ [1 0 1 2 3 0 4 5]) [0 1 2 3])
+(= (__ [5 6 1 3 2 7]) [5 6])
+(= (__ [2 3 3 4 5]) [3 4 5])
+(= (__ [7 6 5 4]) [])
 
 
+(reduce #(do (println %1 %2)(if (= (last %1) %2) %1 (conj %1 %2))) [] [1 2 2 2 3 4 4 4 4 4 2 5 7])
 
-
-
-
-
+(defn _distinct [coll] (reduce #(if (some #{%2} %) % (conj % %2)) [] coll))
+(_distinct [1 2 4 1 2 4 ])
 
 
 
