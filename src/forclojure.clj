@@ -1680,21 +1680,172 @@ acc))))
 ;; Para comprobar si un número es primo lo que hace es comprobar #(< 0 (mod x %))
 ;; para todos los números que hay por debajo de él hasta el 2 (range 2 x)
 
-;; #53 Longest Increasing Sub-Seq
+;; #53 Longest Increasing Sub-Seq *********************************************************************
 ;; Given a vector of integers, find the longest consecutive sub-sequence of
-;;increasing numbers. If two sub-sequences have the same length, use the one that occurs first.
+;; increasing numbers. If two sub-sequences have the same length, use the one that occurs first.
 ;; An increasing sub-sequence must have a length of 2 or greater to qualify.
 
-(= (__ [1 0 1 2 3 0 4 5]) [0 1 2 3])
-(= (__ [5 6 1 3 2 7]) [5 6])
-(= (__ [2 3 3 4 5]) [3 4 5])
-(= (__ [7 6 5 4]) [])
+(= (longest [1 0 1 2 3 0 4 5]) [0 1 2 3])
+(= (longest [5 6 1 3 2 7]) [5 6])
+(= (longest [2 3 3 4 5]) [3 4 5])
+(= (longest [7 6 5 4]) [])
+
+(defn longest [coll]
+  (let [seqs (reduce #(if (= (+ 1 (last (last %))) %2)
+                          (assoc-in % [(- (count %) 1) (count (last %))] %2)
+                          (conj % (vector %2))) [[(first coll)]] (next coll))
+        max (apply max (map count seqs))
+        candidate (first (drop-while  #(not= max (count %)) seqs))]
+    (if (> (count candidate) 1)
+      candidate
+      [])))
+
+;; Otras soluciones:
+
+(fn lss [v]
+  (loop [[h & t] v, lsf [], cur []]
+    (if h
+       (if (and t (> (first t) h))
+                (recur t lsf (conj cur h))
+                (if (>= (count cur) (count lsf)) (recur t (conj cur h) []) (recur t lsf [])))
+        (if (next lsf) lsf []))))
+
+(fn [-seq]
+   (->> (map
+         (fn [it index]
+           (loop [next-items (next (last (split-at index -seq))) stock [it]]
+             (if (= (first next-items) (inc (last stock)))
+               (recur (rest next-items) (conj stock (first next-items)))
+               stock
+               )))
+         -seq (range (count -seq)))
+        (map  #(if (= 1 (count %)) [] %))
+        (sort #(compare (count %2) (count %1)))
+        (first)))
+
+;; #75 Euler's Totient Function
+;; Two numbers are coprime if their greatest common divisor equals 1. Euler's totient
+;; function f(x) is defined as the number of positive integers less than x which are
+;; coprime to x. The special case f(1) equals 1. Write a function which calculates Euler's totient function.
+
+(= (euler 1) 1)
+(= (euler 10) (count '(1 3 7 9)) 4)
+(= (euler 40) 16)
+(= (euler 99) 60)
 
 
-(reduce #(do (println %1 %2)(if (= (last %1) %2) %1 (conj %1 %2))) [] [1 2 2 2 3 4 4 4 4 4 2 5 7])
+(defn euler [n]
+  (if (= n 1)
+      1
+      (let [gcd (fn gcd [x y] (if (= y 0) x (gcd y (rem x y))))]
+        (count (filter #(= 1 (gcd n %)) (range 1 n))))))
 
-(defn _distinct [coll] (reduce #(if (some #{%2} %) % (conj % %2)) [] coll))
-(_distinct [1 2 4 1 2 4 ])
+
+;; #73 Analyze a Tic-Tac-Toe Board
+;; A tic-tac-toe board is represented by a two dimensional vector. X is represented by :x,
+;; O is represented by :o, and empty is represented by :e. A player wins by placing three Xs
+;; or three Os in a horizontal, vertical, or diagonal row. Write a function which analyzes a
+;; tic-tac-toe board and returns :x if X has won, :o if O has won, and nil if neither player has won.
+
+(= nil (tic-tac [[:e :e :e]
+                 [:e :e :e]
+                 [:e :e :e]]))
+(= :x (tic-tac [[:x :e :o]
+                [:x :e :e]
+                [:x :e :o]]))
+(= :o (tic-tac [[:e :x :e]
+                [:o :o :o]
+                [:x :e :x]]))
+(= nil (tic-tac [[:x :e :o]
+                 [:x :x :e]
+                 [:o :x :o]]))
+(= :x (tic-tac [[:x :e :e]
+                [:o :x :e]
+                [:o :e :x]]))
+(= :o (tic-tac [[:x :e :o]
+                [:x :o :e]
+                [:o :e :x]]))
+(= nil (tic-tac [[:x :o :x]
+                 [:x :o :x]
+                 [:o :x :o]]))
+
+(defn tic-tac [board]
+ (let [A board
+       At (apply map vector A)
+       As (map reverse A)
+       diag (fn [b] (let [[[x _ _] [_ y _] [_ _ z]] b] [x y z]))
+       test (fn [y] (ffirst (drop-while #(apply not= %) y)))
+       sol? (fn [sol] (if (= sol :e) nil sol))]
+   (cond
+    (when (test A) true) (sol? (test A))
+    (when (test At) true) (sol? (test At))
+    (apply = (diag A)) (sol? (first (diag A)))
+    (apply = (diag As)) (sol? (first (diag As)))
+    :else nil
+    )))
+
+;; Otra solución
+(fn ttt [board]
+  (let [rows board
+        columns (apply map list board)
+        diagonals [[(first (first board)) (second (second board)) (nth (nth board 2) 2)]
+                   [(first (nth board 2)) (second (second board)) (nth (first board) 2)]]
+        lines (concat rows columns diagonals)
+        matches (filter #(apply = %) lines)
+        winner (first (first (filter #(not-any? #{:e} %) matches)))]
+    winner))
+
+(fn [b]
+  (some {[:o :o :o] :o [:x :x :x] :x}
+        (concat b (partition 3 (apply interleave b))
+                  (for [i [[0 4 8][2 4 6]]]
+                    (map #(nth (flatten b) %) i)))))
+
+;; #110 Sequence of pronunciations
+;; Write a function that returns a lazy sequence of "pronunciations" of a sequence of numbers.
+;; A pronunciation of each element in the sequence consists of the number of repeating identical
+;; numbers and the number itself. For example, [1 1] is pronounced as [2 1] ("two ones"),
+;; which in turn is pronounced as [1 2 1 1] ("one two, one one").
+;; Your function should accept an initial sequence of numbers, and return an infinite lazy
+;; sequence of pronunciations, each element being a pronunciation of the previous element.
+
+(= [[1 1] [2 1] [1 2 1 1]] (take 3 (pron [1])))
+(= [3 1 2 4] (first (pron [1 1 1 4 4])))
+(= [1 1 1 3 2 1 3 2 1 1] (nth (pron [1]) 6))
+(= 338 (count (nth (pron [3 2]) 15)))
+
+(defn pron [s]
+ (next (iterate
+   #(let [seq (partition-by identity %)]
+    (interleave (map count seq) (map first seq))) s)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
