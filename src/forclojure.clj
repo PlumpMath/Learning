@@ -49,7 +49,7 @@
 
 (#(interleave (keys %) (vals %))  {:a 1 :b {:c 3 :d 4 :e {:f 6 :g 7}}})
 
-;tree-seq trata una colección anidada como una árbol, donde la colección y sus subcolecciones
+;tree-seq trata una colección anidada como un árbol, donde la colección y sus subcolecciones
 ;son las ramas y los valores las hojas.
 
 ;(tree-seq branch? children root)
@@ -1819,30 +1819,174 @@ acc))))
    #(let [seq (partition-by identity %)]
     (interleave (map count seq) (map first seq))) s)))
 
+;; #65 Black Box Testing *********************************************************************
+
+;; Clojure has many sequence types, which act in subtly different ways. The core
+;; functions typically convert them into a uniform "sequence" type and work with
+;; them that way, but it can be important to understand the behavioral and
+;; performance differences so that you know which kind is appropriate for your application.
+
+;; Write a function which takes a collection and returns one of
+;; :map, :set, :list, or :vector - describing the type of collection it was given.
+;; You won't be allowed to inspect their class or use the built-in predicates like list?
+;; - the point is to poke at them and understand their behavior.
+
+;; Special Restrictions
+;; class
+;; type
+;; Class
+;; vector?
+;; sequential?
+;; list?
+;; seq?
+;; map?
+;; set?
+;; instance?
+;; getClass
+
+(= :map (black-box {:a 1, :b 2}))
+(= :list (black-box (range (rand-int 20))))
+(= :vector (black-box [1 2 3 4 5 6]))
+(= :set (black-box #{10 (rand-int 5)}))
+(= [:map :set :vector :list] (map black-box [{} #{} [] ()]))
+
+(defn black-box [c]
+ (let [test ((fn [x] (reduce #(conj % %2) (empty x) [[1 1][1 1][2 2]])) c)]
+   (if (= 3 (count test))
+     (if (= 1 (ffirst test))
+         :vector
+         :list)
+     (if (contains? test [1 1])
+         :set
+         :map)
+   )))
+
+;; #93 Partially Flatten a Sequence *********************************************************************
+;; Write a function which flattens any nested combination of sequential things
+;; (lists, vectors, etc.), but maintains the lowest level sequential items.
+;; The result should be a sequence of sequences with only one level of nesting.
+
+(= (fltp [["Do"] ["Nothing"]])
+   [["Do"] ["Nothing"]])
+(= (fltp [[[[:a :b]]] [[:c :d]] [:e :f]])
+   [[:a :b] [:c :d] [:e :f]])
+(= (fltp '((1 2)((3 4)((((5 6)))))))
+   '((1 2)(3 4)(5 6)))
+
+
+(defn fltp [x]
+  (filter #((complement sequential?) (first %)) (tree-seq #(sequential? (first %)) seq x)))
+
+;; #92 Read Roman numerals *********************************************************************
+
+;; Roman numerals are easy to recognize, but not everyone knows all the rules
+;; necessary to work with them. Write a function to parse a Roman-numeral
+;; string and return the number it represents.
+
+;; You can assume that the input will be well-formed, in upper-case, and
+;; follow the subtractive principle. You don't need to handle any numbers
+;; greater than MMMCMXCIX (3999), the largest number representable with ordinary letters.
+
+(= 14 (rom "XIV"))
+(= 827 (rom "DCCCXXVII"))
+(= 3999 (rom "MMMCMXCIX"))
+(= 48 (rom "XLVIII"))
+
+ (defn rom [s]
+   (let [A {\I 1 \V 5 \X 10 \L 50 \C 100 \D 500 \M 1000}
+         R [["IV" "IIII"]
+            ["IX" "VIIII"]
+            ["XL" "XXXX"]
+            ["XC" "LXXXX"]
+            ["CD" "CCCC"]
+            ["CM" "DCCCC"]]]
+     (apply + (map A (reduce #(clojure.string/replace % (first %2)(second %2)) s R )))))
+
+;; Otras soluciones
+(fn [s]
+  (let [roman {"M" 1000 "CM" 900 "D" 500 "CD" 400
+    "C" 100 "XC" 90 "L" 50 "XL" 40 "X" 10 "IX" 9
+    "V" 5 "IV" 4 "I" 1}]
+    (reduce + (map roman
+      (re-seq #"CM|CD|XC|XL|IX|IV|[MDCLXVI]" s)))))
+
+(re-seq #"CM|CD|XC|XL|IX|IV|[MDCLXVI]" "MMMCMXCIX")
+
+(fn rrn [roman-numeral]
+  (let [digits (map {\M 1000 \D 500 \C 100 \L 50 \X 10 \V 5 \I 1} (take 2 roman-numeral))]
+    (cond (empty? digits) 0
+          (and (= 2 (count digits))
+               (< (first digits) (second digits))) (- (rrn (rest roman-numeral)) (first digits))
+          :else (+ (rrn (rest roman-numeral)) (first digits)))))
+
+;; #79 Triangle Minimal Path
+
+;; Write a function which calculates the sum of the minimal path through a triangle.
+;; The triangle is represented as a collection of vectors. The path should start at
+;; the top of the triangle and move to an adjacent number on the next row until the
+;; bottom of the triangle is reached
+
+(= 7 (__ '([1]
+          [2 4]
+         [5 1 4]
+        [2 3 4 5]))) ; 1->2->1->3
+
+(= 20 (__ '([3]
+           [2 4]
+          [1 9 3]
+         [9 9 2 4]
+        [4 6 6 7 8]
+       [5 7 3 5 1 4]))) ; 3->4->3->2->7->1
+
+
+[1 9 3]
+(partition 2 1 [9 9])
+
+(def A '([1]
+         [2 4]
+         [5 1 4]
+         [2 3 4 5]))
+
+(->> (range 97 123)
+     (map char)
+     (map str)
+     (map keyword))
+
+(reductions #(partition 2 (interleave %2 (partition 2 1 %) )  ) (first (reverse A)) (next (reverse A)))
+
+([2 3 4 5]
+ ((5 (2 3)) (1 (3 4)) (4 (4 5)))
+ ((2 ((5 (2 3)) (1 (3 4)))) (4 ((1 (3 4)) (4 (4 5)))))
+ ((1 ((2 ((5 (2 3)) (1 (3 4)))) (4 ((1 (3 4)) (4 (4 5))))))))
+
+(reductions #(interleave %2 (partition 2 1 %)) (first (reverse A)) (next (reverse A)))
+
+([2 3 4 5] [5 1 4]
+ (5 (2 3) 1 (3 4) 4 (4 5))  [2 4]
+ (2 (5 (2 3)) 4 ((2 3) 1))
+ (1 (2 (5 (2 3)))))
+
+(def  B [1 [1 [5 [2] [3]] [1 [3] [4]]] [2 [1 [3] [4]] [4 [4] [5]]]])
+
+(fn walk [node]
+  (lazy-seq
+    (cons node
+          (when (branch? node)
+            (mapcat walk (children node))))))
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(defn tree-seq
+  [branch? children root]
+   (let [walk (fn walk [node]
+                (lazy-seq
+                 (cons node
+                  (when (branch? node)
+                    (mapcat walk (children node))))))]
+     (walk root)))
 
 
 
