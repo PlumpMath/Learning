@@ -1919,74 +1919,178 @@ acc))))
                (< (first digits) (second digits))) (- (rrn (rest roman-numeral)) (first digits))
           :else (+ (rrn (rest roman-numeral)) (first digits)))))
 
-;; #79 Triangle Minimal Path
+;; #79 Triangle Minimal Path *********************************************************************
 
 ;; Write a function which calculates the sum of the minimal path through a triangle.
 ;; The triangle is represented as a collection of vectors. The path should start at
 ;; the top of the triangle and move to an adjacent number on the next row until the
 ;; bottom of the triangle is reached
 
-(= 7 (__ '([1]
+(= 7 (B '([1]
           [2 4]
          [5 1 4]
         [2 3 4 5]))) ; 1->2->1->3
 
-(= 20 (__ '([3]
+(= 20 (f '([3]
            [2 4]
           [1 9 3]
          [9 9 2 4]
         [4 6 6 7 8]
        [5 7 3 5 1 4]))) ; 3->4->3->2->7->1
 
+(defn B [triangulo]
+  (apply min (reduce
+               (fn [a b] (let [s (flatten (map (fn [x y] (map #(+ x %) y)) a (partition 2 1 b)))]
+                           (map #(apply min %) (partition 2 (concat [(first s)] s [(last s)])))))
+               triangulo)))
 
-[1 9 3]
-(partition 2 1 [9 9])
+;; Otras soluciones
+;; amcnamara es un puto genio
+;; esta no la ent
+(defn f [[[a] & b]]
+      (+ a (if b (min (f (map rest b))
+                      (f (map butlast b))) 0)))
 
-(def A '([1]
-         [2 4]
-         [5 1 4]
-         [2 3 4 5]))
+;; las dos siguientes son el mismo principio. Uno usa infinity y el otro un numero muy grande
+#(apply min
+     (reduce
+      (fn [a v] (map min
+                     (map + (cons Double/POSITIVE_INFINITY a) v)
+                     (map + (concat a [Double/POSITIVE_INFINITY]) v)))
+      %))
 
-(->> (range 97 123)
-     (map char)
-     (map str)
-     (map keyword))
-
-(reductions #(partition 2 (interleave %2 (partition 2 1 %) )  ) (first (reverse A)) (next (reverse A)))
-
-([2 3 4 5]
- ((5 (2 3)) (1 (3 4)) (4 (4 5)))
- ((2 ((5 (2 3)) (1 (3 4)))) (4 ((1 (3 4)) (4 (4 5)))))
- ((1 ((2 ((5 (2 3)) (1 (3 4)))) (4 ((1 (3 4)) (4 (4 5))))))))
-
-(reductions #(interleave %2 (partition 2 1 %)) (first (reverse A)) (next (reverse A)))
-
-([2 3 4 5] [5 1 4]
- (5 (2 3) 1 (3 4) 4 (4 5))  [2 4]
- (2 (5 (2 3)) 4 ((2 3) 1))
- (1 (2 (5 (2 3)))))
-
-(def  B [1 [1 [5 [2] [3]] [1 [3] [4]]] [2 [1 [3] [4]] [4 [4] [5]]]])
-
-(fn walk [node]
-  (lazy-seq
-    (cons node
-          (when (branch? node)
-            (mapcat walk (children node))))))
+(fn [x] (apply min
+               (reduce (comp #(map min (concat % [100000]) (concat [100000] %)) (partial map +)) [0] x)))
 
 
+;; también se puede hacer así, que es lo que yo he hecho arriba cuando he usado (first s) y (last s)
+;; para garantizar que el mínimo en ese caso se compare consigo mismo.
+(#(apply min
+     (reduce
+      (fn [a v] (map min
+                     (map + (cons (first a) a) v)
+                     (map + (concat a [(last a)]) v)))
+      %)))
+
+(map min (map + (cons 3 [3]) [2 4])
+         (map + (concat [3] [3]) [2 4]))
+;; (5 7)
+;; (5 7)
+
+(map min (map + (cons 5 '(5 7)) [1 9 3])
+         (map + (concat '(5 7) [7]) [1 9 3]))
+;; (5 5 7)     (5 7 7)
+;; (1 9 3) +   (1 9 3) +
+;; ---------   ---------
+;; (6 14 10)   (6 16 10)
+
+;; #96 Beauty is Symmetry *********************************************************************
+
+;; Let us define a binary tree as "symmetric" if the left half of the tree is
+;; the mirror image of the right half of the tree. Write a predicate to determine
+;; whether or not a given binary tree is symmetric. (see To Tree, or not to Tree
+;; for a reminder on the tree representation we're using).
+
+(= (sim-tree? '(:a (:b nil nil) (:b nil nil))) true)
+(= (sim-tree? '(:a (:b nil nil) nil)) false)
+(= (sim-tree? '(:a (:b nil nil) (:c nil nil))) false)
+(= (sim-tree? [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] [5 nil nil]]] nil]])
+   true)
+(= (sim-tree? [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [5 nil nil] [6 nil nil]]] nil]])
+   false)
+(= (sim-tree? [1 [2 nil [3 [4 [5 nil nil] [6 nil nil]] nil]]
+          [2 [3 nil [4 [6 nil nil] nil]] nil]])
+   false)
+
+
+(defn sim-tree? [[v izq der]]
+  (= izq ((fn rev [[v i d]] [v (if (= 3 (count d)) (rev d) d) (if (= 3 (count i)) (rev i) i)]) der)))
+
+;; #146 Trees into tables *********************************************************************
+
+;; Because Clojure's for macro allows you to "walk" over multiple sequences
+;; in a nested fashion, it is excellent for transforming all sorts of sequences.
+;; If you don't want a sequence as your final output (say you want a map), you
+;; are often still best-off using for, because you can produce a sequence and
+;; feed it into a map, for example.
+
+;; For this problem, your goal is to "flatten" a map of hashmaps. Each key
+;; in your output map should be the "path"1 that you would have to take in the
+;; original map to get to a value, so for example {1 {2 3}} should result in
+;; {[1 2] 3}. You only need to flatten one level of maps: if one of the values
+;; is a map, just leave it alone.
+
+;; 1 That is, (get-in original [k1 k2]) should be the same as (get result [k1 k2])
+
+(= (tree '{a {p 1, q 2}
+         b {m 3, n 4}})
+   '{[a p] 1, [a q] 2
+     [b m] 3, [b n] 4})
+
+(= (tree '{[1] {a b c d}
+         [2] {q r s t u v w x}})
+   '{[[1] a] b, [[1] c] d,
+     [[2] q] r, [[2] s] t,
+     [[2] u] v, [[2] w] x})
+
+(= (tree '{m {1 [a b c] 3 nil}})
+   '{[m 1] [a b c], [m 3] nil})
+
+
+(defn tree [m]
+  (->>  (for [[k v] m
+              [k2 v2] v]
+          [[k k2] v2])
+        (apply concat)
+        (apply hash-map)))
+
+;; Otras soluciones
+(fn [m] (into {}
+              (for [[k v] m
+                    [k2 v2] v]
+                [[k k2] v2])))
+
+;; #108 Lazy Searching *********************************************************************
+
+;; Given any number of sequences, each sorted from smallest to largest,
+;; find the smallest single number which appears in all of the sequences.
+;; The sequences may be infinite, so be careful to search lazily.
+
+(= 3 (__ [3 4 5]))
+(= 4 (__ [1 2 3 4 5 6 7] [0.5 3/2 4 19]))
+(= 7 (__ (range) (range 0 100 7/6) [2 3 5 7 11 13]))
+(= 64 (__ (map #(* % % %) (range)) ;; perfect cubes
+          (filter #(zero? (bit-and % (dec %))) (range)) ;; powers of 2
+          (iterate inc 20))) ;; at least as large as 20
+
+
+(__ [1 2 3 4 5 6 7]
+
+    [0.5 3/2 4 19]
+    (range))
+
+
+(defn ls [s & ss]
+
+
+
+  )
+
+
+(map list
+ (range)
+    (cycle  [0.5 3/2 4 19]) )
+
+(cycle 1 2 3)
 
 
 
 
-(defn tree-seq
-  [branch? children root]
-   (let [walk (fn walk [node]
-                (lazy-seq
-                 (cons node
-                  (when (branch? node)
-                    (mapcat walk (children node))))))]
-     (walk root)))
+
+
+
 
 
 
