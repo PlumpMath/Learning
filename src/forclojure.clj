@@ -2058,32 +2058,79 @@ acc))))
 ;; find the smallest single number which appears in all of the sequences.
 ;; The sequences may be infinite, so be careful to search lazily.
 
-(= 3 (__ [3 4 5]))
-(= 4 (__ [1 2 3 4 5 6 7] [0.5 3/2 4 19]))
-(= 7 (__ (range) (range 0 100 7/6) [2 3 5 7 11 13]))
-(= 64 (__ (map #(* % % %) (range)) ;; perfect cubes
+(= 3 (ls [3 4 5]))
+(= 4 (ls [1 2 3 4 5 6 7] [0.5 3/2 4 19]))
+(= 7 (ls (range) (range 0 100 7/6) [2 3 5 7 11 13]))
+(= 64 (ls (map #(* % % %) (range)) ;; perfect cubes
           (filter #(zero? (bit-and % (dec %))) (range)) ;; powers of 2
           (iterate inc 20))) ;; at least as large as 20
 
-
-(__ [1 2 3 4 5 6 7]
-
-    [0.5 3/2 4 19]
-    (range))
-
-
+;; This is a solution, but is not valid because it uses reduced and reduced was added in clojure 1.5
+;; 4clojure uses clojure 1.4
 (defn ls [s & ss]
+  (letfn [(lazy-search [n coll] (if (>= n (first coll)) (if (= n (first coll)) n (recur n (next coll))) nil))]
+    (if
+      (every? #(= (first s) %) (map (partial lazy-search (first s)) ss))
+      (first s)
+      (recur (next s) ss))))
+
+;; Otras soluciones
+
+#(loop [c %&]
+   (let [[a & b] (vec (apply sorted-set (map first c)))]
+     (if b (recur (for [[i & j :as k] c] (if (= a i) j k))) a)))
+
+;; IMPORTANTEEEEEEEEEEEE
+;; cómo colapsar nested reductions
+
+(def new-board [[nil nil nil][nil nil nil][nil nil nil]])
+(def board [[1 2 3][4 5 6][7 8 9]])
+
+(reduce
+ (fn [new-board x]
+   (reduce (fn [new-board y] (assoc-in new-board [x y] (if  (even? y) 2)))
+           new-board [0 1 2]))
+ board [0 1 2])
+
+(defn populate [board]
+  (reduce
+   (fn [new-board [x y]]
+     (assoc-in new-board [x y] (if (and (even? x)(even? y)) :e (get-in board [x y]))))
+   board (for [x [0 1 2] y [0 1 2]] [x y])))
+
+(populate board)
+
+(for [x [0 1 2] y [0 1 2]] [x y])
 
 
+;; #114 Global take-while *********************************************************************
 
-  )
+;; take-while is great for filtering sequences, but it limited: you can only examine a single
+;; item of the sequence at a time. What if you need to keep track of some state as you go over the sequence?
+;; Write a function which accepts an integer n, a predicate p, and a sequence. It should
+;; return a lazy sequence of items in the list up to, but not including, the nth item that satisfies the predicate
+
+(= [2 3 5 7 11 13]
+   (TW 4 #(= 2 (mod % 3))
+         [2 3 5 7 11 13 17 19 23]))
+
+(= ["this" "is" "a" "sentence"]
+   (TW 3 #(some #{\i} %)
+         ["this" "is" "a" "sentence" "i" "wrote"]))
+
+(= ["this" "is"]
+   (TW 1 #{"a"}
+         ["this" "is" "a" "sentence" "i" "wrote"]))
 
 
-(map list
- (range)
-    (cycle  [0.5 3/2 4 19]) )
+(defn TW [n pred coll] (loop [c coll counter 0 result []]
+                         (if (sequential? c)
+                             (if (< counter n)
+                                 (recur (next c) (if (pred (first c)) (inc counter) counter) (conj result (first c)))
+                                  (pop result))
+                               result)))
 
-(cycle 1 2 3)
+;; Esta es mi primera solución, aunque creo que no es lazy
 
 
 
