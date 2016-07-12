@@ -2065,8 +2065,6 @@ acc))))
           (filter #(zero? (bit-and % (dec %))) (range)) ;; powers of 2
           (iterate inc 20))) ;; at least as large as 20
 
-;; This is a solution, but is not valid because it uses reduced and reduced was added in clojure 1.5
-;; 4clojure uses clojure 1.4
 (defn ls [s & ss]
   (letfn [(lazy-search [n coll] (if (>= n (first coll)) (if (= n (first coll)) n (recur n (next coll))) nil))]
     (if
@@ -2079,6 +2077,15 @@ acc))))
 #(loop [c %&]
    (let [[a & b] (vec (apply sorted-set (map first c)))]
      (if b (recur (for [[i & j :as k] c] (if (= a i) j k))) a)))
+
+(#(vec (apply sorted-set (map first %))) [[1 2 3 4 5 6 7] [0.5 1.5 2.5 3 4 19] [2 3 4 5 7 11 13]])
+
+((fn [&colls]
+  (let [c &colls]
+    (for [[i & j :as k] c]
+      i) )  ) [[1 2 3 4 5 6 7] [0.5 1.5 2.5 3 4 19] [2 3 4 5 7 11 13]])
+(= [0.5 1 2] '(1 0.5 2))
+
 
 ;; IMPORTANTEEEEEEEEEEEE
 ;; cómo colapsar nested reductions
@@ -2132,10 +2139,98 @@ acc))))
 
 ;; Esta es mi primera solución, aunque creo que no es lazy
 
+;; #132 Insert between two items *********************************************************************
+;; Write a function that takes a two-argument predicate, a value, and a collection;
+;; and returns a new collection where the value is inserted between every two items that satisfy the predicate.
+
+(= '(1 :less 6 :less 7 4 3) (insertvalue < :less [1 6 7 4 3]))
+(= '(2) (insertvalue > :more [2]))
+(= [0 1 :x 2 :x 3 :x 4]  (insertvalue #(and (pos? %) (< % %2)) :x (range 5)))
+(empty? (insertvalue > :more ()))
+(= [0 1 :same 1 2 3 :same 5 8 13 :same 21]
+   (take 12 (->> [0 1]
+                 (iterate (fn [[a b]] [b (+ a b)]))
+                 (map first) ; fibonacci numbers
+                 (insertvalue (fn [a b] ; both even or both odd
+                       (= (mod a 2) (mod b 2)))
+                     :same))))
+
+;; Primera solución que no sirve porque no es lazy y no cumple el último test
+(defn insertvalue [pred val coll]
+  (if (empty? coll)
+    ()
+    (reduce #(if (pred (last %) %2) (conj % val %2) (conj % %2)) [(first coll)] (rest coll)))
+  )
+
+;; Lo convierto en una función recursiva
+(defn insertvalue [pred val coll]
+     (lazy-seq
+     (when-let [s (seq coll)]
+         (if
+         (if (second s) (pred (first s) (second s)) false) ;; para que pueda hacer la comprobación
+                                                           ;; primero tengo que comprobar si no hemos
+                                                           ;; llegado al último elemento y por lo tanto no hay second
+         (cons (first s) (cons val (insertvalue pred val (rest s))))
+         (cons (first s) (insertvalue pred val (rest s)))))))
+
+(defn insertvalue [pred val coll]
+     (lazy-seq
+     (when-let [s (seq coll)]
+         (if
+         (if (second s) (pred (first s) (second s)) false)
+         (cons (first s) (cons val (insertvalue pred val (rest s))))
+         (cons (first s) (insertvalue pred val (rest s)))))))
+
+;; #104 Write Roman Numerals *********************************************************************
+;;This is the inverse of Problem 92, but much easier. Given an integer
+;; smaller than 4000, return the corresponding roman numeral in uppercase, adhering to the subtractive principle.
+
+(= "I" (romanos 1))
+(= "XXX" (romanos 30))
+(= "IV" (romanos 4))
+(= "CXL" (romanos 140))
+(= "DCCCXXVII" (romanos 827))
+(= "MMMCMXCIX" (romanos 3999))
+(= "XLVIII" (romanos 48))
+
+(defn romanos [n]
+  (let [romans {1 "I" 10 "X" 100 "C" 1000 "M"}
+        roman-num (apply str
+                         (map romans
+                              (reduce #(concat % (repeat (mod (quot n %2) 10) %2))
+                                      [] [1000 100 10 1])))]
+    (println roman-num)
+    (-> roman-num
+        (clojure.string/replace "CCCCCCCCC" "CM")
+        (clojure.string/replace "CCCCC" "D")
+        (clojure.string/replace "CCCC" "CD")
+        (clojure.string/replace "XXXXXXXXX" "XC")
+        (clojure.string/replace "XXXXX" "L")
+        (clojure.string/replace "XXXX" "XL")
+        (clojure.string/replace "IIIIIIIII" "IX")
+        (clojure.string/replace "IIIII" "V")
+        (clojure.string/replace "IIII" "IV"))))
+
+;; Otras soluciones
+(#(clojure.pprint/cl-format nil "~@R" %) 1958)
 
 
-
-
+(fn _
+    ([n] (_ (reverse
+              (map read-string
+                   (map str
+                        (str n))))
+            "IVXLCDM.."))
+    ([[d & e] [r s & t]]
+     (if d
+       (apply str
+              (_ e t)
+              (cond
+                (< d 4) (repeat d r)
+                (= d 4) [r s]
+                (< d 9) (cons s (repeat (- d 5) r))
+                1 [r (first t)]))
+       )))
 
 
 
