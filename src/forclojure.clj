@@ -279,6 +279,10 @@ maparesultados
 (defn odd [x] (for [a x :when (odd? a)] a))
 (odd [1 2 3 2 1])
 
+(for [[item times] {"X" 20 "O" 10}
+      i (range times)]
+  item)
+
 ;hacen lo mismo que la de arriba. Usando remove quitamos los elementos que cumplen
 ; la condición de ser par
 (remove even? [1 2 3 2 1])
@@ -2231,6 +2235,221 @@ acc))))
                 (< d 9) (cons s (repeat (- d 5) r))
                 1 [r (first t)]))
        )))
+
+
+;; #171 Intervals *********************************************************************
+
+;;Write a function that takes a sequence of integers and returns a sequence of
+;; "intervals". Each interval is a a vector of two integers, start and end, such
+;; that all integers between start and end (inclusive) are contained in the input sequence.
+
+(= (intervals [1 2 3]) [[1 3]])
+(= (intervals [10 9 8 1 2 3]) [[1 3] [8 10]])
+(= (intervals [1 1 1 1 1 1 1]) [[1 1]])
+(= (intervals []) [])
+(= (intervals [19 4 17 1 3 10 2 13 13 2 16 4 2 15 13 9 6 14 2 11])
+       [[1 4] [6 6] [9 11] [13 17] [19 19]])
+
+
+(defn intervals [coll]
+  (let [groups (reduce #(if (= (last (last %)) (- %2 1))
+                            (assoc-in % [(- (count %) 1) (count (last %))] %2)
+                            (assoc-in % [(count %)] [%2]))
+                       [] (distinct (sort coll)))]
+    (for [s groups]
+      [(first s) (last s)])
+    ))
+
+;; #177 Balancing Brackets *********************************************************************
+;; When parsing a snippet of code it's often a good idea to do a sanity check
+;; to see if all the brackets match up. Write a function that takes in a string
+;; and returns truthy if all square [ ] round ( ) and curly { } brackets are
+;; properly paired and legally nested, or returns falsey otherwise.
+
+(balance "This string has no brackets.")
+(balance "class Test {
+      public static void main(String[] args) {
+        System.out.println(\"Hello world.\");
+      }
+    }")
+(not (balance "(start, end]"))
+(not (balance "())"))
+(not (balance "[ { ] } "))
+(balance "([]([(()){()}(()(()))(([[]]({}()))())]((((()()))))))")
+(not (balance "([]([(()){()}(()(()))(([[]]({}([)))())]((((()()))))))"))
+(not (balance "["))
+
+
+(defn balance [s]
+  (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
+        del (fn [s] (-> s (clojure.string/replace  "()" "")
+                        (clojure.string/replace  "[]" "")
+                        (clojure.string/replace  "{}" "")))]
+    (if (= (del cleaned) "")
+      true
+      (if (= (del cleaned) (del (del cleaned)))
+        false
+        (recur (del cleaned))))))
+
+;; #195 Parentheses... Again *********************************************************************
+;; In a family of languages like Lisp, having balanced parentheses is a defining
+;; feature of the language. Luckily, Lisp has almost no syntax, except for these
+;;"delimiters" -- and that hardly qualifies as "syntax", at least in any useful computer programming sense.
+
+;; It is not a difficult exercise to find all the combinations of well-formed parentheses if
+;; we only have N pairs to work with. For instance, if we only have 2 pairs, we only have two
+;; possible combinations: "()()" and "(())". Any other combination of length 4 is ill-formed. Can you see why?
+
+;; Generate all possible combinations of well-formed parentheses of length 2n (n pairs of parentheses).
+;; For this problem, we only consider '(' and ')', but the answer is similar if you work with only {} or only [].
+
+;; There is an interesting pattern in the numbers!
+
+(= [#{""} #{"()"} #{"()()" "(())"}] (map (fn [n] (parentheses n)) [0 1 2]))
+(= #{"((()))" "()()()" "()(())" "(())()" "(()())"} (parentheses 3))
+(= 16796 (count (parentheses 10)))
+(= (nth (sort (filter #(.contains ^String % "(()()()())") (parentheses 9))) 6) "(((()()()())(())))")
+(= (nth (sort (parentheses 12)) 5000) "(((((()()()()()))))(()))")
+
+
+
+
+(defn parentheses [n]
+  (if (= n 0)
+    #{""}
+    (let [v (vec (concat (repeat n 1)(repeat n 2)))
+        iter-perm (fn iter-perm [v]
+                    (let [len (count v),
+                          j (loop [i (- len 2)]
+                              (cond (= i -1) nil
+                                    (< (v i) (v (inc i))) i
+                                    :else (recur (dec i))))]
+                      (when j
+                        (let [vj (v j),
+                              l (loop [i (dec len)]
+                                  (if (< vj (v i)) i (recur (dec i))))]
+                          (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
+                            (if (< k l)
+                              (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
+                              v))))))
+        m {1 "(" 2 ")"}
+        s ((fn vec-lex-permutations [v] (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v)))))) v)
+        balanced? (fn balanced [s]
+          (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
+                del (fn [s] (-> s (clojure.string/replace  "()" "")))]
+            (if (= (del cleaned) "")
+              true
+              (if (= (del cleaned) (del (del cleaned)))
+                false
+                (recur (del cleaned))))))
+        ]
+    (set (filter balanced? (map #(apply str (map m %)) s)))
+    )))
+
+(defn parentheses-2 [n]
+  (if (= n 0)
+    #{""}
+    (let [v (vec (concat (repeat n 1)(repeat n 2)))
+        iter-perm (fn iter-perm [v]
+                    (let [len (count v),
+                          j (loop [i (- len 2)]
+                              (cond (= i -1) nil
+                                    (< (v i) (v (inc i))) i
+                                    :else (recur (dec i))))]
+                      (when j
+                        (let [vj (v j),
+                              l (loop [i (dec len)]
+                                  (if (< vj (v i)) i (recur (dec i))))]
+                          (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
+                            (if (< k l)
+                              (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
+                              v))))))
+        m {1 "(" 2 ")"}
+        s ((fn vec-lex-permutations [v] (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v)))))) v)
+        #_(balanced? (fn balanced [s]
+          (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
+                del (fn [s] (-> s (clojure.string/replace  "()" "")))]
+            (if (= (del cleaned) "")
+              true
+              (if (= (del cleaned) (del (del cleaned)))
+                false
+                (recur (del cleaned)))))))
+        ]
+    (set (map #(apply str (map m %)) s))
+    )))
+
+(time (nth (sort (parentheses 12)) 5000))
+
+
+
+
+
+
+
+
+
+#_(
+(defn iter-perm [v]
+  (let [len (count v),
+        j (loop [i (- len 2)]
+            (cond (= i -1) nil
+                  (< (v i) (v (inc i))) i
+                  :else (recur (dec i))))]
+    (when j
+      (let [vj (v j),
+            l (loop [i (dec len)]
+                (if (< vj (v i)) i (recur (dec i))))]
+        (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
+          (if (< k l)
+            (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
+            v))))))
+
+(defn- vec-lex-permutations [v]
+  (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v))))))
+    )
+
+(iter-perm [1])
+(iter-perm [1 1 1 2 2 2])
+(iter-perm [1 1 2 1 2 2])
+(iter-perm [1 1 1 2 2 2 3 3 3])
+(vec-lex-permutations [1 1 2 2])
+
+
+
+
+(-> [1 2 3 4]
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm
+    iter-perm)
+
+(iter-perm [3 2 1])
+
+
+
+
+
+
+
 
 
 
