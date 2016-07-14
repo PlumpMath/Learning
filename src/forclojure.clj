@@ -2314,143 +2314,82 @@ acc))))
 
 
 
-(defn parentheses [n]
-  (if (= n 0)
-    #{""}
-    (let [v (vec (concat (repeat n 1)(repeat n 2)))
-        iter-perm (fn iter-perm [v]
-                    (let [len (count v),
-                          j (loop [i (- len 2)]
-                              (cond (= i -1) nil
-                                    (< (v i) (v (inc i))) i
-                                    :else (recur (dec i))))]
-                      (when j
-                        (let [vj (v j),
-                              l (loop [i (dec len)]
-                                  (if (< vj (v i)) i (recur (dec i))))]
-                          (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
-                            (if (< k l)
-                              (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
-                              v))))))
-        m {1 "(" 2 ")"}
-        s ((fn vec-lex-permutations [v] (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v)))))) v)
-        balanced? (fn balanced [s]
-          (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
-                del (fn [s] (-> s (clojure.string/replace  "()" "")))]
-            (if (= (del cleaned) "")
-              true
-              (if (= (del cleaned) (del (del cleaned)))
-                false
-                (recur (del cleaned))))))
-        ]
-    (set (filter balanced? (map #(apply str (map m %)) s)))
-    )))
+(defn parentheses
+  ([n] (parentheses "" n 0 0))
+  ([s n o c]
+   (if (= n c)
+     #{s}
+     (clojure.set/union
+      (if (< o n)
+        (parentheses (str s "(") n (inc o) c)
+        #{})
+      (if (< c o)
+        (parentheses (str s ")") n o (inc c))
+        #{})))))
 
-(defn parentheses-2 [n]
-  (if (= n 0)
-    #{""}
-    (let [v (vec (concat (repeat n 1)(repeat n 2)))
-        iter-perm (fn iter-perm [v]
-                    (let [len (count v),
-                          j (loop [i (- len 2)]
-                              (cond (= i -1) nil
-                                    (< (v i) (v (inc i))) i
-                                    :else (recur (dec i))))]
-                      (when j
-                        (let [vj (v j),
-                              l (loop [i (dec len)]
-                                  (if (< vj (v i)) i (recur (dec i))))]
-                          (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
-                            (if (< k l)
-                              (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
-                              v))))))
-        m {1 "(" 2 ")"}
-        s ((fn vec-lex-permutations [v] (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v)))))) v)
-        #_(balanced? (fn balanced [s]
-          (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
-                del (fn [s] (-> s (clojure.string/replace  "()" "")))]
-            (if (= (del cleaned) "")
-              true
-              (if (= (del cleaned) (del (del cleaned)))
-                false
-                (recur (del cleaned)))))))
-        ]
-    (set (map #(apply str (map m %)) s))
-    )))
+;; #148 The Big Divide *********************************************************************
 
-(time (nth (sort (parentheses 12)) 5000))
+;; Write a function which calculates the sum of all natural numbers under n (first argument)
+;; which are evenly divisible by at least one of a and b (second and third argument). Numbers a and b are guaranteed to be coprimes.
+
+;; Note: Some test cases have a very large n, so the most obvious solution will exceed the time limit.
+
+(= 0 (bigD 3 17 11))
+(= 23 (bigD 10 3 5))
+(= 233168 (bigD 1000 3 5))
+(= "2333333316666668" (str (bigD 100000000 3 5)))
+(= "110389610389889610389610"
+  (str (__ (* 10000 10000 10000) 7 11)))
+(= "1277732511922987429116"
+  (str (__ (* 10000 10000 10000) 757 809)))
+(= "4530161696788274281"
+  (str (__ (* 10000 10000 1000) 1597 3571)))
 
 
 
 
 
 
+(time (bigD 5 3 5))
+
+(defn bigD [n a b]
+  (reduce + (concat (filter #(not= 0 (rem % b)) (take-while #(< % n) (map #(* a %) (range))))
+                    (take-while #(< % n) (map #(* b %) (range)))
+
+                   )))
+
+
+(concat (filter #(not= 0 (rem % 5)) (take-while #(< % 10) (map #(* 3 %) (range))))
+                    (take-while #(< % 10) (map #(* 5 %) (range)))
+
+                   )
+
+
+(time (take-while #(< % 100000000) (map #(* 3 %) (range))))
+;; 0.2 msec
+
+(time (apply + (take-while #(< % 100000000) (map #(* 3 %) (range)))))
+;; 11700 msec
+
+(time (apply + (filter #(not= 0 (rem % 5)) (take-while #(< % 100000000) (map #(* 3 %) (range))))))
+;; 16666 msec
+
+(concat (take-while #(< % n) (map #(* 3 %) (range)))
+(map #(* 5 %) (range)))
 
 
 
-#_(
-(defn iter-perm [v]
-  (let [len (count v),
-        j (loop [i (- len 2)]
-            (cond (= i -1) nil
-                  (< (v i) (v (inc i))) i
-                  :else (recur (dec i))))]
-    (when j
-      (let [vj (v j),
-            l (loop [i (dec len)]
-                (if (< vj (v i)) i (recur (dec i))))]
-        (loop [v (assoc v j (v l) l vj), k (inc j), l (dec len)]
-          (if (< k l)
-            (recur (assoc v k (v l) l (v k)) (inc k) (dec l))
-            v))))))
+(defn big
+  [n a b]
+   (+ 0
+     (if (< a n)
+       (big (+ R a) (+ a a) b)
+       0)
+     (if (< b n)
+       (big (+ R a) a (+ b b))
+       0)))
 
-(defn- vec-lex-permutations [v]
-  (when v (cons v (lazy-seq (vec-lex-permutations (iter-perm v))))))
-    )
-
-(iter-perm [1])
-(iter-perm [1 1 1 2 2 2])
-(iter-perm [1 1 2 1 2 2])
-(iter-perm [1 1 1 2 2 2 3 3 3])
-(vec-lex-permutations [1 1 2 2])
-
-
-
-
-(-> [1 2 3 4]
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm
-    iter-perm)
-
-(iter-perm [3 2 1])
-
-
-
-
-
-
-
-
+(big 100 3 5)
 
 
 
