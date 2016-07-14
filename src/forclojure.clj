@@ -2350,52 +2350,29 @@ acc))))
 
 
 
-(time (bigD 5 3 5))
-
 (defn bigD [n a b]
   (reduce + (concat (filter #(not= 0 (rem % b)) (take-while #(< % n) (map #(* a %) (range))))
-                    (take-while #(< % n) (map #(* b %) (range)))
-
-                   )))
-
-
-(concat (filter #(not= 0 (rem % 5)) (take-while #(< % 10) (map #(* 3 %) (range))))
-                    (take-while #(< % 10) (map #(* 5 %) (range)))
-
-                   )
+                    (take-while #(< % n) (map #(* b %) (range))))))
+;; Esta funciona pero no sirve porque tarda demasiado
 
 
-(time (take-while #(< % 100000000) (map #(* 3 %) (range))))
-;; 0.2 msec
-
-(time (apply + (take-while #(< % 100000000) (map #(* 3 %) (range)))))
-;; 11700 msec
-
-(time (apply + (filter #(not= 0 (rem % 5)) (take-while #(< % 100000000) (map #(* 3 %) (range))))))
-;; 16666 msec
-
-(concat (take-while #(< % n) (map #(* 3 %) (range)))
-(map #(* 5 %) (range)))
+(defn big [n a b]
+  (loop [sum 0 c1 a c2 b]
+      (if (and (> c1 n) (> c2 n))
+        sum
+        (recur (+' sum (if (< c1 n) c1 0) (if (< c2 n) c2 0)) (+ c1 a) (+ c2 b)))
+    ))
+;; Esta tampopco sirve. He probado con una función recursiva y tampoco sirve.
 
 
-
-(defn big
-  [n a b]
-   (+ 0
-     (if (< a n)
-       (big (+ R a) (+ a a) b)
-       0)
-     (if (< b n)
-       (big (+ R a) a (+ b b))
-       0)))
-
-(big 100 3 5)
-
-
-
-
-
-
+(defn big [max a b]
+  (let [nx (fn [x] (if (integer? (/ max x)) (-' (/ max x) 1) (long (/ max x))))
+        na (nx a)
+        nb (nx b)
+        ab (*' a b)
+        nab (nx ab)
+        sum-x (fn [x nx] (*' x (/ (*' nx (+' nx 1)) 2)))]
+     (-' (+' (sum-x a na) (sum-x b nb) ) (sum-x ab nab))))
 
 
 
