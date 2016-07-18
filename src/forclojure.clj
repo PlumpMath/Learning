@@ -2346,10 +2346,6 @@ acc))))
   (str (__ (* 10000 10000 1000) 1597 3571)))
 
 
-
-
-
-
 (defn bigD [n a b]
   (reduce + (concat (filter #(not= 0 (rem % b)) (take-while #(< % n) (map #(* a %) (range))))
                     (take-while #(< % n) (map #(* b %) (range))))))
@@ -2374,6 +2370,133 @@ acc))))
         sum-x (fn [x nx] (*' x (/ (*' nx (+' nx 1)) 2)))]
      (-' (+' (sum-x a na) (sum-x b nb) ) (sum-x ab nab))))
 
+;; #150 Palindromic Numbers *********************************************************************
+;; A palindromic number is a number that is the same when written forwards or backwards (e.g., 3, 99, 14341).
+
+;; Write a function which takes an integer n, as its only argument, and returns an increasing
+;; lazy sequence of all palindromic numbers that are not less than n.
+
+;; The most simple solution will exceed the time limit!
+
+(= (take 26 (palindrome 0))
+   [0 1 2 3 4 5 6 7 8 9
+    11 22 33 44 55 66 77 88 99
+    101 111 121 131 141 151 161])
+(= (take 16 (palindrome 162))
+   [171 181 191 202
+    212 222 232 242
+    252 262 272 282
+    292 303 313 323])
+(= (take 16 (palindrome 162))
+   [171 181 191 202
+    212 222 232 242
+    252 262 272 282
+    292 303 313 323])
+(= (first (palindrome (* 111111111 111111111)))
+   (* 111111111 111111111))
+(= (set (take 199 (palindrome-n 0)))
+   (set (map #(first (palindrome-n %)) (range 0 10000))))
+(= true
+   (apply < (take 6666 (palindrome-n 9999999))))
+(= (nth (palindrome-n 0) 10101)
+   9102019)
+
+
+
+(defn palindrome-1 [n]
+   (filter #(= (str %) (clojure.string/reverse (str %))) (range n Double/POSITIVE_INFINITY)))
+;; Esta es la opción más obvia (fuerza bruta): filtra todos los números para generar la
+;; secuencia de palídromos.
+
+;; Otra opción... también tarda demasiado. También fuerza bruta.
+(defn palindrome-2 [n]
+   (letfn [(palindrome? [x] (= (str x) (clojure.string/reverse (str x))))]
+     (for [x (range n Double/POSITIVE_INFINITY)
+         :when (palindrome? x)]
+       x
+     )))
+
+
+;; Esta es peor todavia:
+(defn palindrome-3 [n]
+  (letfn [(reverse-int [n]
+                       (loop [m n
+                              acc 0]
+                         (cond
+                           (zero? m) acc
+                           :else (recur (quot m 10) (+ (* acc 10) (mod m 10))))))
+          (palindrome? [n] (= n (reverse-int n)))]
+    (for [x (range n Double/POSITIVE_INFINITY)
+          :when (palindrome? x)]
+      x
+      )))
+
+
+;; En esta el acercamiento es distinto. En vez de filtrar todos los numeros para ver si es
+;; un palíndromo, se centra en generar directamente una sucesión de números palíndromos, que son
+;; muchos menos.
+(defn palindrome-4 [n]
+  (drop-while #(> n %) (cons 0 (map read-string (flatten
+                                                  (map (fn [coll]
+                                                         ((juxt (fn [s] (map #(str % (apply str (rest (clojure.string/reverse  %)))) s))
+                                                                (fn [s] (map #(str % (clojure.string/reverse %)) s))) coll))
+                                                       (partition-by count (map str (range 1 Double/POSITIVE_INFINITY)))))))))
+
+
+(time (partition-by count (map str (range 1 Double/POSITIVE_INFINITY))))
+
+(partition-by #( ) (range 10000 Double/POSITIVE_INFINITY))
+
+
+
+
+(for [a (range 1 10)
+      b (range 10)]
+    (long (+
+          (* a (Math/pow 10 2))
+          (* b (Math/pow 10 1))
+          (* a (Math/pow 10 0)))))
+
+(for [a (range 1 10)
+      b (range 10)]
+    (long (+
+          (* a (Math/pow 10 3))
+          (* b (Math/pow 10 2))
+          (* b (Math/pow 10 1))
+          (* a (Math/pow 10 0)))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(defn lss [v]
+  (loop [[h & t] v, lsf [], cur []]
+    (if h
+       (if (and t (> (first t) h))
+                (recur t lsf (conj cur h))
+                (if (>= (count cur) (count lsf)) (recur t (conj cur h) []) (recur t lsf [])))
+        (if (next lsf) lsf []))))
+
+(lss [0 1 2 5 4 6 7 5 2])
+
+(= (lss [1 0 1 2 3 0 4 5]) [0 1 2 3])
+(= (lss [5 6 1 3 2 7]) [5 6])
+(= (lss [2 3 3 4 5]) [3 4 5])
+(= (lss [7 6 5 4]) [])
 
 
 
