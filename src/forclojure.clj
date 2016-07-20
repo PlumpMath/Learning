@@ -2478,7 +2478,14 @@ acc))))
 
 
 
+(defn int-partition [num size]
+   (let [f (int (Math/pow 10 size))]
+      (loop [n num l ()]
+         (if (zero? n)
+            (vec l)
+            (recur (int (/ n f)) (conj l (mod n f)))))))
 
+(int-partition 1001 1)
 
 
 
