@@ -710,7 +710,7 @@ maparesultados
       )))
 
 
-(pascal 11)
+(pascal 5)
 
 ; siempre los hay más idiomáticos... por qué me cuesta tanto usar recur??? por qué zeñó por qué???
 ; este usa una fómula para el algoritmo que no sé de donde la saca

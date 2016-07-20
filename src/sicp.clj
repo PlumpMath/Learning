@@ -1,5 +1,5 @@
-;; 1.11 A function f is defined by
-
+;; 1.11  ****************************************************************
+;; A function f is defined by
 ;; f(n) = { n if n < 3,
 ;;          f(n-1)+2f(n-2)+3f(n-3) if n >= 3
 ;; Write a procedure that computes f by means of a recursive process.
@@ -63,5 +63,39 @@
 ;; (fiter 11 4 2 3)
 ;; (fiter 25 11 4 2)
 ;; 25
+
+;; 1.12 ****************************************************************
+;; Write a procedure that computes elements of Pascals Triangule by means
+;; of a recursive process
+
+;;      1
+;;     1 1
+;;    1 2 1
+;;   1 3 3 1
+;;  1 4 6 4 1
+
+;; (pascal row col)
+;; (pascal 5 3) 6
+
+(defn p [c r]
+  (cond
+    (= r 1) 1
+    (= r c) 1
+    :else (+ (p (- c 1) (- r 1)) (p (- c 1) r))))
+
+(p 5 3)
+
+;; sustitution model (tree-recursive process)
+;; (p 5 3)
+;; (+ (p 4 2)                         (p 4 3))
+;; (+ (+ (p 3 1) (p 3 2))             (+ (p 3 2)             (p 3 3)))
+;; (+ (+ 1       (+ (p 2 1) (p 2 2))) (+ (+ (p 2 1) (p 2 2)) 1))
+;; (+ (+ 1       (+ 1       1))       (+ (+ 1       1)       1))
+;; (+ (+ 1       2)                   (+ 2                   1))
+;; (+ 3                               3)
+;; 6
+
+
+
 
 
