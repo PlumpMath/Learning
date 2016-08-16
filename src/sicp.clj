@@ -11,7 +11,7 @@
     n
     (+ (frec (- n 1)) (* 2 (frec (- n 2))) (* 3 (frec (- n 3))))))
 
-(frec 3)
+(time (frec 32))
 ;; 25
 
 ;; sustitution model
@@ -52,10 +52,11 @@
    (if
      (< count 3)
      a
-     (fiter (+ a (* 2 b) (* 3 c)) a b (- count 1))
+     (fiter (+' a (*' 2 b) (*' 3 c)) a b (- count 1))
      )))
 
-(fiter 5)
+(time (fiter 55))
+
 ;; sustitution model
 ;; (fiter 5)
 ;; (fiter 2 1 0 5)

@@ -340,6 +340,7 @@ maparesultados
 
 (gcdelegant 8 4)
 
+(gcd 1728 1080)
 
 ;Variación de #66 Greatest common divisor --> aplicar a más de dos números
 ;Trato de meterlo todo en una función. Como quiero a provechar la función
