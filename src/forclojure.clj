@@ -279,6 +279,10 @@ maparesultados
 (defn odd [x] (for [a x :when (odd? a)] a))
 (odd [1 2 3 2 1])
 
+(for [[item times] {"X" 20 "O" 10}
+      i (range times)]
+  item)
+
 ;hacen lo mismo que la de arriba. Usando remove quitamos los elementos que cumplen
 ; la condición de ser par
 (remove even? [1 2 3 2 1])
@@ -336,6 +340,7 @@ maparesultados
 
 (gcdelegant 8 4)
 
+(gcd 1728 1080)
 
 ;Variación de #66 Greatest common divisor --> aplicar a más de dos números
 ;Trato de meterlo todo en una función. Como quiero a provechar la función
@@ -706,7 +711,7 @@ maparesultados
       )))
 
 
-(pascal 11)
+(pascal 5)
 
 ; siempre los hay más idiomáticos... por qué me cuesta tanto usar recur??? por qué zeñó por qué???
 ; este usa una fómula para el algoritmo que no sé de donde la saca
@@ -2068,32 +2073,408 @@ acc))))
 ;; find the smallest single number which appears in all of the sequences.
 ;; The sequences may be infinite, so be careful to search lazily.
 
-(= 3 (__ [3 4 5]))
-(= 4 (__ [1 2 3 4 5 6 7] [0.5 3/2 4 19]))
-(= 7 (__ (range) (range 0 100 7/6) [2 3 5 7 11 13]))
-(= 64 (__ (map #(* % % %) (range)) ;; perfect cubes
+(= 3 (ls [3 4 5]))
+(= 4 (ls [1 2 3 4 5 6 7] [0.5 3/2 4 19]))
+(= 7 (ls (range) (range 0 100 7/6) [2 3 5 7 11 13]))
+(= 64 (ls (map #(* % % %) (range)) ;; perfect cubes
           (filter #(zero? (bit-and % (dec %))) (range)) ;; powers of 2
           (iterate inc 20))) ;; at least as large as 20
 
-
-(__ [1 2 3 4 5 6 7]
-
-    [0.5 3/2 4 19]
-    (range))
-
-
 (defn ls [s & ss]
+  (letfn [(lazy-search [n coll] (if (>= n (first coll)) (if (= n (first coll)) n (recur n (next coll))) nil))]
+    (if
+      (every? #(= (first s) %) (map (partial lazy-search (first s)) ss))
+      (first s)
+      (recur (next s) ss))))
+
+;; Otras soluciones
+
+#(loop [c %&]
+   (let [[a & b] (vec (apply sorted-set (map first c)))]
+     (if b (recur (for [[i & j :as k] c] (if (= a i) j k))) a)))
+
+(#(vec (apply sorted-set (map first %))) [[1 2 3 4 5 6 7] [0.5 1.5 2.5 3 4 19] [2 3 4 5 7 11 13]])
+
+((fn [&colls]
+  (let [c &colls]
+    (for [[i & j :as k] c]
+      i) )  ) [[1 2 3 4 5 6 7] [0.5 1.5 2.5 3 4 19] [2 3 4 5 7 11 13]])
+(= [0.5 1 2] '(1 0.5 2))
 
 
+;; IMPORTANTEEEEEEEEEEEE
+;; cómo colapsar nested reductions
 
+(def new-board [[nil nil nil][nil nil nil][nil nil nil]])
+(def board [[1 2 3][4 5 6][7 8 9]])
+
+(reduce
+ (fn [new-board x]
+   (reduce (fn [new-board y] (assoc-in new-board [x y] (if  (even? y) 2)))
+           new-board [0 1 2]))
+ board [0 1 2])
+
+(defn populate [board]
+  (reduce
+   (fn [new-board [x y]]
+     (assoc-in new-board [x y] (if (and (even? x)(even? y)) :e (get-in board [x y]))))
+   board (for [x [0 1 2] y [0 1 2]] [x y])))
+
+(populate board)
+
+(for [x [0 1 2] y [0 1 2]] [x y])
+
+
+;; #114 Global take-while *********************************************************************
+
+;; take-while is great for filtering sequences, but it limited: you can only examine a single
+;; item of the sequence at a time. What if you need to keep track of some state as you go over the sequence?
+;; Write a function which accepts an integer n, a predicate p, and a sequence. It should
+;; return a lazy sequence of items in the list up to, but not including, the nth item that satisfies the predicate
+
+(= [2 3 5 7 11 13]
+   (TW 4 #(= 2 (mod % 3))
+         [2 3 5 7 11 13 17 19 23]))
+
+(= ["this" "is" "a" "sentence"]
+   (TW 3 #(some #{\i} %)
+         ["this" "is" "a" "sentence" "i" "wrote"]))
+
+(= ["this" "is"]
+   (TW 1 #{"a"}
+         ["this" "is" "a" "sentence" "i" "wrote"]))
+
+
+(defn TW [n pred coll] (loop [c coll counter 0 result []]
+                         (if (sequential? c)
+                             (if (< counter n)
+                                 (recur (next c) (if (pred (first c)) (inc counter) counter) (conj result (first c)))
+                                  (pop result))
+                               result)))
+
+;; Esta es mi primera solución, aunque creo que no es lazy
+
+;; #132 Insert between two items *********************************************************************
+;; Write a function that takes a two-argument predicate, a value, and a collection;
+;; and returns a new collection where the value is inserted between every two items that satisfy the predicate.
+
+(= '(1 :less 6 :less 7 4 3) (insertvalue < :less [1 6 7 4 3]))
+(= '(2) (insertvalue > :more [2]))
+(= [0 1 :x 2 :x 3 :x 4]  (insertvalue #(and (pos? %) (< % %2)) :x (range 5)))
+(empty? (insertvalue > :more ()))
+(= [0 1 :same 1 2 3 :same 5 8 13 :same 21]
+   (take 12 (->> [0 1]
+                 (iterate (fn [[a b]] [b (+ a b)]))
+                 (map first) ; fibonacci numbers
+                 (insertvalue (fn [a b] ; both even or both odd
+                       (= (mod a 2) (mod b 2)))
+                     :same))))
+
+;; Primera solución que no sirve porque no es lazy y no cumple el último test
+(defn insertvalue [pred val coll]
+  (if (empty? coll)
+    ()
+    (reduce #(if (pred (last %) %2) (conj % val %2) (conj % %2)) [(first coll)] (rest coll)))
   )
 
+;; Lo convierto en una función recursiva
+(defn insertvalue [pred val coll]
+     (lazy-seq
+     (when-let [s (seq coll)]
+         (if
+         (if (second s) (pred (first s) (second s)) false) ;; para que pueda hacer la comprobación
+                                                           ;; primero tengo que comprobar si no hemos
+                                                           ;; llegado al último elemento y por lo tanto no hay second
+         (cons (first s) (cons val (insertvalue pred val (rest s))))
+         (cons (first s) (insertvalue pred val (rest s)))))))
 
-(map list
- (range)
-    (cycle  [0.5 3/2 4 19]) )
+(defn insertvalue [pred val coll]
+     (lazy-seq
+     (when-let [s (seq coll)]
+         (if
+         (if (second s) (pred (first s) (second s)) false)
+         (cons (first s) (cons val (insertvalue pred val (rest s))))
+         (cons (first s) (insertvalue pred val (rest s)))))))
 
-(cycle 1 2 3)
+;; #104 Write Roman Numerals *********************************************************************
+;;This is the inverse of Problem 92, but much easier. Given an integer
+;; smaller than 4000, return the corresponding roman numeral in uppercase, adhering to the subtractive principle.
+
+(= "I" (romanos 1))
+(= "XXX" (romanos 30))
+(= "IV" (romanos 4))
+(= "CXL" (romanos 140))
+(= "DCCCXXVII" (romanos 827))
+(= "MMMCMXCIX" (romanos 3999))
+(= "XLVIII" (romanos 48))
+
+(defn romanos [n]
+  (let [romans {1 "I" 10 "X" 100 "C" 1000 "M"}
+        roman-num (apply str
+                         (map romans
+                              (reduce #(concat % (repeat (mod (quot n %2) 10) %2))
+                                      [] [1000 100 10 1])))]
+    (println roman-num)
+    (-> roman-num
+        (clojure.string/replace "CCCCCCCCC" "CM")
+        (clojure.string/replace "CCCCC" "D")
+        (clojure.string/replace "CCCC" "CD")
+        (clojure.string/replace "XXXXXXXXX" "XC")
+        (clojure.string/replace "XXXXX" "L")
+        (clojure.string/replace "XXXX" "XL")
+        (clojure.string/replace "IIIIIIIII" "IX")
+        (clojure.string/replace "IIIII" "V")
+        (clojure.string/replace "IIII" "IV"))))
+
+;; Otras soluciones
+(#(clojure.pprint/cl-format nil "~@R" %) 1958)
+
+
+(fn _
+    ([n] (_ (reverse
+              (map read-string
+                   (map str
+                        (str n))))
+            "IVXLCDM.."))
+    ([[d & e] [r s & t]]
+     (if d
+       (apply str
+              (_ e t)
+              (cond
+                (< d 4) (repeat d r)
+                (= d 4) [r s]
+                (< d 9) (cons s (repeat (- d 5) r))
+                1 [r (first t)]))
+       )))
+
+
+;; #171 Intervals *********************************************************************
+
+;;Write a function that takes a sequence of integers and returns a sequence of
+;; "intervals". Each interval is a a vector of two integers, start and end, such
+;; that all integers between start and end (inclusive) are contained in the input sequence.
+
+(= (intervals [1 2 3]) [[1 3]])
+(= (intervals [10 9 8 1 2 3]) [[1 3] [8 10]])
+(= (intervals [1 1 1 1 1 1 1]) [[1 1]])
+(= (intervals []) [])
+(= (intervals [19 4 17 1 3 10 2 13 13 2 16 4 2 15 13 9 6 14 2 11])
+       [[1 4] [6 6] [9 11] [13 17] [19 19]])
+
+
+(defn intervals [coll]
+  (let [groups (reduce #(if (= (last (last %)) (- %2 1))
+                            (assoc-in % [(- (count %) 1) (count (last %))] %2)
+                            (assoc-in % [(count %)] [%2]))
+                       [] (distinct (sort coll)))]
+    (for [s groups]
+      [(first s) (last s)])
+    ))
+
+;; #177 Balancing Brackets *********************************************************************
+;; When parsing a snippet of code it's often a good idea to do a sanity check
+;; to see if all the brackets match up. Write a function that takes in a string
+;; and returns truthy if all square [ ] round ( ) and curly { } brackets are
+;; properly paired and legally nested, or returns falsey otherwise.
+
+(balance "This string has no brackets.")
+(balance "class Test {
+      public static void main(String[] args) {
+        System.out.println(\"Hello world.\");
+      }
+    }")
+(not (balance "(start, end]"))
+(not (balance "())"))
+(not (balance "[ { ] } "))
+(balance "([]([(()){()}(()(()))(([[]]({}()))())]((((()()))))))")
+(not (balance "([]([(()){()}(()(()))(([[]]({}([)))())]((((()()))))))"))
+(not (balance "["))
+
+
+(defn balance [s]
+  (let [cleaned (apply str (re-seq #"\(|\)|\[|\]|\{|\}" s))
+        del (fn [s] (-> s (clojure.string/replace  "()" "")
+                        (clojure.string/replace  "[]" "")
+                        (clojure.string/replace  "{}" "")))]
+    (if (= (del cleaned) "")
+      true
+      (if (= (del cleaned) (del (del cleaned)))
+        false
+        (recur (del cleaned))))))
+
+;; #195 Parentheses... Again *********************************************************************
+;; In a family of languages like Lisp, having balanced parentheses is a defining
+;; feature of the language. Luckily, Lisp has almost no syntax, except for these
+;;"delimiters" -- and that hardly qualifies as "syntax", at least in any useful computer programming sense.
+
+;; It is not a difficult exercise to find all the combinations of well-formed parentheses if
+;; we only have N pairs to work with. For instance, if we only have 2 pairs, we only have two
+;; possible combinations: "()()" and "(())". Any other combination of length 4 is ill-formed. Can you see why?
+
+;; Generate all possible combinations of well-formed parentheses of length 2n (n pairs of parentheses).
+;; For this problem, we only consider '(' and ')', but the answer is similar if you work with only {} or only [].
+
+;; There is an interesting pattern in the numbers!
+
+(= [#{""} #{"()"} #{"()()" "(())"}] (map (fn [n] (parentheses n)) [0 1 2]))
+(= #{"((()))" "()()()" "()(())" "(())()" "(()())"} (parentheses 3))
+(= 16796 (count (parentheses 10)))
+(= (nth (sort (filter #(.contains ^String % "(()()()())") (parentheses 9))) 6) "(((()()()())(())))")
+(= (nth (sort (parentheses 12)) 5000) "(((((()()()()()))))(()))")
+
+
+
+
+(defn parentheses
+  ([n] (parentheses "" n 0 0))
+  ([s n o c]
+   (if (= n c)
+     #{s}
+     (clojure.set/union
+      (if (< o n)
+        (parentheses (str s "(") n (inc o) c)
+        #{})
+      (if (< c o)
+        (parentheses (str s ")") n o (inc c))
+        #{})))))
+
+;; #148 The Big Divide *********************************************************************
+
+;; Write a function which calculates the sum of all natural numbers under n (first argument)
+;; which are evenly divisible by at least one of a and b (second and third argument). Numbers a and b are guaranteed to be coprimes.
+
+;; Note: Some test cases have a very large n, so the most obvious solution will exceed the time limit.
+
+(= 0 (bigD 3 17 11))
+(= 23 (bigD 10 3 5))
+(= 233168 (bigD 1000 3 5))
+(= "2333333316666668" (str (bigD 100000000 3 5)))
+(= "110389610389889610389610"
+  (str (__ (* 10000 10000 10000) 7 11)))
+(= "1277732511922987429116"
+  (str (__ (* 10000 10000 10000) 757 809)))
+(= "4530161696788274281"
+  (str (__ (* 10000 10000 1000) 1597 3571)))
+
+
+(defn bigD [n a b]
+  (reduce + (concat (filter #(not= 0 (rem % b)) (take-while #(< % n) (map #(* a %) (range))))
+                    (take-while #(< % n) (map #(* b %) (range))))))
+;; Esta funciona pero no sirve porque tarda demasiado
+
+
+(defn big [n a b]
+  (loop [sum 0 c1 a c2 b]
+      (if (and (> c1 n) (> c2 n))
+        sum
+        (recur (+' sum (if (< c1 n) c1 0) (if (< c2 n) c2 0)) (+ c1 a) (+ c2 b)))
+    ))
+;; Esta tampopco sirve. He probado con una función recursiva y tampoco sirve.
+
+
+(defn big [max a b]
+  (let [nx (fn [x] (if (integer? (/ max x)) (-' (/ max x) 1) (long (/ max x))))
+        na (nx a)
+        nb (nx b)
+        ab (*' a b)
+        nab (nx ab)
+        sum-x (fn [x nx] (*' x (/ (*' nx (+' nx 1)) 2)))]
+     (-' (+' (sum-x a na) (sum-x b nb) ) (sum-x ab nab))))
+
+;; #150 Palindromic Numbers *********************************************************************
+;; A palindromic number is a number that is the same when written forwards or backwards (e.g., 3, 99, 14341).
+
+;; Write a function which takes an integer n, as its only argument, and returns an increasing
+;; lazy sequence of all palindromic numbers that are not less than n.
+
+;; The most simple solution will exceed the time limit!
+
+(= (take 26 (palindrome 0))
+   [0 1 2 3 4 5 6 7 8 9
+    11 22 33 44 55 66 77 88 99
+    101 111 121 131 141 151 161])
+(= (take 16 (palindrome 162))
+   [171 181 191 202
+    212 222 232 242
+    252 262 272 282
+    292 303 313 323])
+(= (take 16 (palindrome 162))
+   [171 181 191 202
+    212 222 232 242
+    252 262 272 282
+    292 303 313 323])
+(= (first (palindrome (* 111111111 111111111)))
+   (* 111111111 111111111))
+(= (set (take 199 (palindrome-n 0)))
+   (set (map #(first (palindrome-n %)) (range 0 10000))))
+(= true
+   (apply < (take 6666 (palindrome-n 9999999))))
+(= (nth (palindrome-n 0) 10101)
+   9102019)
+
+
+
+(defn palindrome-1 [n]
+   (filter #(= (str %) (clojure.string/reverse (str %))) (range n Double/POSITIVE_INFINITY)))
+;; Esta es la opción más obvia (fuerza bruta): filtra todos los números para generar la
+;; secuencia de palídromos.
+
+;; Otra opción... también tarda demasiado. También fuerza bruta.
+(defn palindrome-2 [n]
+   (letfn [(palindrome? [x] (= (str x) (clojure.string/reverse (str x))))]
+     (for [x (range n Double/POSITIVE_INFINITY)
+         :when (palindrome? x)]
+       x
+     )))
+
+
+;; Esta es peor todavia:
+(defn palindrome-3 [n]
+  (letfn [(reverse-int [n]
+                       (loop [m n
+                              acc 0]
+                         (cond
+                           (zero? m) acc
+                           :else (recur (quot m 10) (+ (* acc 10) (mod m 10))))))
+          (palindrome? [n] (= n (reverse-int n)))]
+    (for [x (range n Double/POSITIVE_INFINITY)
+          :when (palindrome? x)]
+      x
+      )))
+
+
+;; En esta el acercamiento es distinto. En vez de filtrar todos los numeros para ver si es
+;; un palíndromo, se centra en generar directamente una sucesión de números palíndromos, que son
+;; muchos menos.
+(defn palindrome-4 [n]
+  (drop-while #(> n %) (cons 0 (map read-string (flatten
+                                                  (map (fn [coll]
+                                                         ((juxt (fn [s] (map #(str % (apply str (rest (clojure.string/reverse  %)))) s))
+                                                                (fn [s] (map #(str % (clojure.string/reverse %)) s))) coll))
+                                                       (partition-by count (map str (range 1 Double/POSITIVE_INFINITY)))))))))
+
+
+(time (partition-by count (map str (range 1 Double/POSITIVE_INFINITY))))
+
+(partition-by #( ) (range 10000 Double/POSITIVE_INFINITY))
+
+
+
+
+(for [a (range 1 10)
+      b (range 10)]
+    (long (+
+          (* a (Math/pow 10 2))
+          (* b (Math/pow 10 1))
+          (* a (Math/pow 10 0)))))
+
+(for [a (range 1 10)
+      b (range 10)]
+    (long (+
+          (* a (Math/pow 10 3))
+          (* b (Math/pow 10 2))
+          (* b (Math/pow 10 1))
+          (* a (Math/pow 10 0)))))
 
 
 
@@ -2107,6 +2488,33 @@ acc))))
 
 
 
+
+(defn int-partition [num size]
+   (let [f (int (Math/pow 10 size))]
+      (loop [n num l ()]
+         (if (zero? n)
+            (vec l)
+            (recur (int (/ n f)) (conj l (mod n f)))))))
+
+(int-partition 1001 1)
+
+
+
+
+(defn lss [v]
+  (loop [[h & t] v, lsf [], cur []]
+    (if h
+       (if (and t (> (first t) h))
+                (recur t lsf (conj cur h))
+                (if (>= (count cur) (count lsf)) (recur t (conj cur h) []) (recur t lsf [])))
+        (if (next lsf) lsf []))))
+
+(lss [0 1 2 5 4 6 7 5 2])
+
+(= (lss [1 0 1 2 3 0 4 5]) [0 1 2 3])
+(= (lss [5 6 1 3 2 7]) [5 6])
+(= (lss [2 3 3 4 5]) [3 4 5])
+(= (lss [7 6 5 4]) [])
 
 
 
