@@ -1795,13 +1795,23 @@ acc))))
         winner (first (first (filter #(not-any? #{:e} %) matches)))]
     winner))
 
-(fn [b]
+
+(defn tictactoe [b]
   (some {[:o :o :o] :o [:x :x :x] :x}
         (concat b (partition 3 (apply interleave b))
                   (for [i [[0 4 8][2 4 6]]]
                     (map #(nth (flatten b) %) i)))))
 
-;; #110 Sequence of pronunciations
+(def B [[:x :e :o]
+        [:x :e :e]
+        [:x :e :o]])
+
+(tictactoe B)
+
+
+
+
+;; #110 Sequence of pronunciations *********************************************************************
 ;; Write a function that returns a lazy sequence of "pronunciations" of a sequence of numbers.
 ;; A pronunciation of each element in the sequence consists of the number of repeating identical
 ;; numbers and the number itself. For example, [1 1] is pronounced as [2 1] ("two ones"),
