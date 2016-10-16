@@ -2329,14 +2329,37 @@ acc))))
   ([n] (parentheses "" n 0 0))
   ([s n o c]
    (if (= n c)
-     #{s}
+     (do
+       (println s)
+       #{s})
      (clojure.set/union
-      (if (< o n)
-        (parentheses (str s "(") n (inc o) c)
-        #{})
-      (if (< c o)
-        (parentheses (str s ")") n o (inc c))
-        #{})))))
+       (if (< o n)
+         (do
+           (println s o c)
+           (parentheses (str s "(") n (inc o) c)
+           )
+         #{})
+       (if (< c o)
+         (do
+           (println s o c)
+           (parentheses (str s ")") n o (inc c))
+           )
+         #{}))
+     )))
+
+
+(parentheses 3)
+
+;; Other solutions
+
+(fn all-paren [n] (if (== n 0) #{""}
+    (into #{}
+          (for [i (range n)
+                j (all-paren i)
+                k (all-paren (- n 1 i))]
+            (str "(" j ")" k)))))
+
+
 
 ;; #148 The Big Divide *********************************************************************
 
@@ -2515,6 +2538,16 @@ acc))))
 (= (lss [5 6 1 3 2 7]) [5 6])
 (= (lss [2 3 3 4 5]) [3 4 5])
 (= (lss [7 6 5 4]) [])
+
+
+
+
+
+
+
+
+
+
 
 
 
